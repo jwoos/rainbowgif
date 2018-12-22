@@ -255,4 +255,106 @@ func TestPositionSearch(t *testing.T) {
 			}
 		},
 	)
+
+	t.Run(
+		"Four colors",
+		func (innerT *testing.T) {
+			colors := []colorful.Color{
+				{0, 0, 0},
+				{0.25, 0.25, 0.25},
+				{0.5, 0.5, 0.5},
+				{0.75, 0.75, 0.75},
+				{1, 1, 1},
+			}
+			gradient := newGradient(colors)
+
+			for i := 0.0; i < 0.25; i += 0.05 {
+				returnedColors := gradient.positionSearch(i)
+
+				if returnedColors[0] != colors[0] {
+					innerT.Errorf(
+						"positionSearch(%f)[0] - expected %v but got %v",
+						i,
+						colors[0],
+						returnedColors[0],
+					)
+				}
+
+				if returnedColors[1] != colors[1] {
+					innerT.Errorf(
+						"positionSearch(%f)[1] - expected %v but got %v",
+						i,
+						colors[1],
+						returnedColors[1],
+					)
+				}
+			}
+
+			for i := 0.26; i < 0.5; i += 0.05 {
+				returnedColors := gradient.positionSearch(i)
+
+				if returnedColors[0] != colors[1] {
+					innerT.Errorf(
+						"positionSearch(%f)[0] - expected %v but got %v",
+						i,
+						colors[1],
+						returnedColors[0],
+					)
+				}
+
+				if returnedColors[1] != colors[2] {
+					innerT.Errorf(
+						"positionSearch(%f)[1] - expected %v but got %v",
+						i,
+						colors[2],
+						returnedColors[1],
+					)
+				}
+			}
+
+			for i := 0.51; i < 0.75; i += 0.05 {
+				returnedColors := gradient.positionSearch(i)
+
+				if returnedColors[0] != colors[2] {
+					innerT.Errorf(
+						"positionSearch(%f)[0] - expected %v but got %v",
+						i,
+						colors[2],
+						returnedColors[0],
+					)
+				}
+
+				if returnedColors[1] != colors[3] {
+					innerT.Errorf(
+						"positionSearch(%f)[1] - expected %v but got %v",
+						i,
+						colors[3],
+						returnedColors[0],
+					)
+				}
+			}
+
+			for i := 0.76; i <= 1; i += 0.05 {
+				returnedColors := gradient.positionSearch(i)
+
+				if returnedColors[0] != colors[3] {
+					innerT.Errorf(
+						"positionSearch(%f)[0] - expected %v but got %v",
+						i,
+						colors[3],
+						returnedColors[0],
+					)
+				}
+
+				if returnedColors[1] != colors[4] {
+					innerT.Errorf(
+						"positionSearch(%f)[1] - expected %v but got %v",
+						i,
+						colors[4],
+						returnedColors[0],
+					)
+				}
+			}
+		},
+	)
 }
