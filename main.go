@@ -3,6 +3,8 @@ package main
 
 import (
 	"fmt"
+	//"image"
+	//"image/color"
 	"image/gif"
 	//"io/ioutil"
 	"os"
@@ -18,16 +20,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	decoded, err := gif.DecodeAll(file)
+	originalImage, err := gif.DecodeAll(file)
 	if (err != nil) {
 		fmt.Println("Error decoding: ", err)
 		os.Exit(1)
 	}
-	fmt.Println(decoded)
 
+	frameCount := len(originalImage.Image)
+	fmt.Println(frameCount)
 
-	for i, frame := range decoded.Image {
-		frame := decode.Image[i]
-		delay := decode.Delay[i]
-	}
+	/* frame is just `*image.Paletted`
+	 * `color.Palette` is just `[]color.Color`
+	 * `[]color.Color` is an interface implementing `RGBA()`
+	 */
+	/*
+	 *for _, frame := range originalImage.Image {
+	 *    originalPalette := frame.Palette
+	 *    newPalette := make([]color.Color, len(frame.Palette))
+	 *}
+	 */
+
+	/*
+	 *transformedImage := gif.GIF{
+	 *    Image: make([]*image.Paletted, 0, len(originalImage.Image)),
+	 *    Delay: make([]int, len(originalImage.Delay)),
+	 *    LoopCount: originalImage.LoopCount,
+	 *    Disposal: originalImage.Disposal,
+	 *    Config: originalImage.Config,
+	 *    BackgroundIndex: originalImage.BackgroundIndex,
+	 *}
+	 */
 }
