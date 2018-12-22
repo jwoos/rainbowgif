@@ -2,20 +2,22 @@ package main
 
 
 import (
+	"math"
+
 	"github.com/lucasb-eyer/go-colorful"
 )
 
 
 type Gradient struct {
 	colors []colorful.Color
-	positions []float32
+	positions []float64
 }
 
 
 func newGradient(colors []colorful.Color) Gradient {
 	gradient := Gradient{
 		colors: make([]colorful.Color, len(colors)),
-		positions: make([]float32, len(colors)),
+		positions: make([]float64, len(colors)),
 	}
 	copy(gradient.colors, colors)
 
@@ -26,7 +28,7 @@ func newGradient(colors []colorful.Color) Gradient {
 	} else {
 		// Distribute the colors evenly
 		for i := 0; i <= colorCount; i++ {
-			gradient.positions[i] = float32(i) / float32(colorCount)
+			gradient.positions[i] = float64(i) / float64(colorCount)
 		}
 	}
 
@@ -47,38 +49,16 @@ func (gradient Gradient) generate(frameCount int) []colorful.Color {
 }
 
 
-func (gradient Gradient) positionSearch(position float32) []int {
-	var val float32 = 1.0
-	var half float32 = val / 2.0
-	var current []colorful.Color = gradient.colors
-	var indices = []int{0}
-	indices = append(indices, int(len(current) - 1))
+func (gradient Gradient) positionSearch(position float64) []colorful.Color {
+	length := len(gradient.colors) - 1
+	base := 1.0 / float64(length)
+	lowerIndex := int(math.Floor(position / base))
 
-	for len(current) > 0 {
-		if len(current) <= 2 {
-			return indices
-		}
+	sliced := gradient.colors[lowerIndex:]
 
-		if position == half {
-			indices[1] = len(current) / 2
-
-			if len(current) & 1 == 1 {
-				// odd
-				indices[0] = indices[1]
-			} else {
-				// even
-				indices[0] = indices[1] - 1
-			}
-
-			return indices
-		} else if position < half {
-			indices[1] = len(current) / 2
-		} else {
-			indices[0] = len(current) / 2
-		}
-
-		current = current[indices[0]:indices[1]]
+	if len(sliced) > 2 {
+		sliced = sliced[:2]
 	}
 
-	return indices
+	return sliced
 }
