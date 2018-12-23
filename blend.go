@@ -14,6 +14,13 @@ type Gradient struct {
 }
 
 
+type GradientKeyFrame struct {
+	color colorful.Color
+	position float64
+	index int
+}
+
+
 func newGradient(colors []colorful.Color) Gradient {
 	gradient := Gradient{
 		colors: make([]colorful.Color, len(colors)),
@@ -39,26 +46,51 @@ func newGradient(colors []colorful.Color) Gradient {
 func (gradient Gradient) generate(frameCount int) []colorful.Color {
 	generated := make([]colorful.Color, frameCount)
 
-	/*
-	 *for i := 0; int(i) < frameCount; i++ {
-	 *    position := int(i) / frameCount
-	 *}
-	 */
+	for i := 0; int(i) < frameCount; i++ {
+		position := float64(i) / float64(frameCount)
+		keyframes := gradient.positionSearch(position)
+
+		if len(keyframes) == 1 {
+			generated[i] = keyframes[0].color
+		} else {
+			relativePosition := (position - keyframes[0].position) / (keyframes[1].position - keyframes[0].position)
+			generated[i] = keyframes[0].color.BlendHcl(keyframes[1].color, relativePosition).Clamped()
+		}
+	}
 
 	return generated
 }
 
 
-func (gradient Gradient) positionSearch(position float64) []colorful.Color {
+func (gradient Gradient) positionSearch(position float64) []GradientKeyFrame {
 	length := len(gradient.colors) - 1
 	base := 1.0 / float64(length)
 	lowerIndex := int(math.Floor(position / base))
 
 	sliced := gradient.colors[lowerIndex:]
 
-	if len(sliced) > 2 {
+	if len(sliced) >= 2 {
 		sliced = sliced[:2]
+
+		return []GradientKeyFrame{
+			{
+				color: sliced[0],
+				position: gradient.positions[lowerIndex],
+				index: lowerIndex,
+			},
+			{
+				color: sliced[1],
+				position: gradient.positions[lowerIndex + 1],
+				index: lowerIndex + 1,
+			},
+		}
 	}
 
-	return sliced
+	return []GradientKeyFrame{
+		{
+			color: sliced[0],
+			position: gradient.positions[lowerIndex],
+			index: lowerIndex,
+		},
+	}
 }

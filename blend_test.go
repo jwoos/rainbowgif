@@ -79,13 +79,13 @@ func TestPositionSearch(t *testing.T) {
 			gradient := newGradient(colors)
 
 			for i := 0.0; i <= 1.0; i += 0.1 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[0] {
+				if returnedKeyFrames[0].color != colors[0] {
 					innerT.Errorf(
 						"Expected %v but got %v",
 						colors[0],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 			}
@@ -102,21 +102,21 @@ func TestPositionSearch(t *testing.T) {
 			gradient := newGradient(colors)
 
 			for i := 0.0; i <= 1.0; i += 0.1 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[0] {
+				if returnedKeyFrames[0].color != colors[0] {
 					innerT.Errorf(
 						"Expected %v but got %v",
 						colors[0],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[1] {
+				if returnedKeyFrames[1].color != colors[1] {
 					innerT.Errorf(
 						"Expected %v but got %v",
 						colors[1],
-						returnedColors[1],
+						returnedKeyFrames[1].color,
 					)
 				}
 			}
@@ -134,43 +134,43 @@ func TestPositionSearch(t *testing.T) {
 			gradient := newGradient(colors)
 
 			for i := 0.0; i < 0.5; i += 0.1 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[0] {
+				if returnedKeyFrames[0].color != colors[0] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[0],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[1] {
+				if returnedKeyFrames[1].color != colors[1] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[1],
-						returnedColors[1],
+						returnedKeyFrames[1].color,
 					)
 				}
 			}
 
 			for i := 0.5; i <= 1.0; i += 0.1 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[1] {
+				if returnedKeyFrames[0].color != colors[1] {
 					innerT.Errorf(
 						"Expected %v but got %v",
 						colors[1],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[2] {
+				if returnedKeyFrames[1].color != colors[2] {
 					innerT.Errorf(
 						"Expected %v but got %v",
 						colors[2],
-						returnedColors[1],
+						returnedKeyFrames[1].color,
 					)
 				}
 			}
@@ -189,67 +189,67 @@ func TestPositionSearch(t *testing.T) {
 			gradient := newGradient(colors)
 
 			for i := 0.0; i <= 0.33; i += 0.03 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[0] {
+				if returnedKeyFrames[0].color != colors[0] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[0],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[1] {
+				if returnedKeyFrames[1].color != colors[1] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[1],
-						returnedColors[1],
+						returnedKeyFrames[1].color,
 					)
 				}
 			}
 
 			for i := 0.34; i < 0.66; i += 0.03 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[1] {
+				if returnedKeyFrames[0].color != colors[1] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[1],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[2] {
+				if returnedKeyFrames[1].color != colors[2] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[2],
-						returnedColors[1],
+						returnedKeyFrames[1].color,
 					)
 				}
 			}
 
 			for i := 0.67; i <= 1; i += 0.03 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[2] {
+				if returnedKeyFrames[0].color != colors[2] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[2],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[3] {
+				if returnedKeyFrames[1].color != colors[3] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[3],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 			}
@@ -269,89 +269,89 @@ func TestPositionSearch(t *testing.T) {
 			gradient := newGradient(colors)
 
 			for i := 0.0; i < 0.25; i += 0.05 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[0] {
+				if returnedKeyFrames[0].color != colors[0] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[0],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[1] {
+				if returnedKeyFrames[1].color != colors[1] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[1],
-						returnedColors[1],
+						returnedKeyFrames[1].color,
 					)
 				}
 			}
 
 			for i := 0.26; i < 0.5; i += 0.05 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[1] {
+				if returnedKeyFrames[0].color != colors[1] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[1],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[2] {
+				if returnedKeyFrames[1].color != colors[2] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[2],
-						returnedColors[1],
+						returnedKeyFrames[1].color,
 					)
 				}
 			}
 
 			for i := 0.51; i < 0.75; i += 0.05 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[2] {
+				if returnedKeyFrames[0].color != colors[2] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[2],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[3] {
+				if returnedKeyFrames[1].color != colors[3] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[3],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 			}
 
 			for i := 0.76; i <= 1; i += 0.05 {
-				returnedColors := gradient.positionSearch(i)
+				returnedKeyFrames := gradient.positionSearch(i)
 
-				if returnedColors[0] != colors[3] {
+				if returnedKeyFrames[0].color != colors[3] {
 					innerT.Errorf(
 						"positionSearch(%f)[0] - expected %v but got %v",
 						i,
 						colors[3],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 
-				if returnedColors[1] != colors[4] {
+				if returnedKeyFrames[1].color != colors[4] {
 					innerT.Errorf(
 						"positionSearch(%f)[1] - expected %v but got %v",
 						i,
 						colors[4],
-						returnedColors[0],
+						returnedKeyFrames[0].color,
 					)
 				}
 			}
