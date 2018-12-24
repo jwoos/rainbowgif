@@ -358,3 +358,177 @@ func TestPositionSearch(t *testing.T) {
 		},
 	)
 }
+
+
+func TestGenerate(t *testing.T) {
+	t.Run(
+		"Two colors - two frames",
+		func (innerT *testing.T) {
+			colors := []colorful.Color{
+				{0, 0, 0},
+				{1, 1, 1},
+			}
+			gradient := newGradient(colors)
+			generated := gradient.generate(2)
+
+			if len(generated) != 2 {
+				innerT.Errorf("Expected %v but got %v", 2, len(generated))
+			}
+
+			if generated[0] != colors[0] {
+				innerT.Errorf("Expected %v but got %v", colors[0], generated[0])
+			}
+
+			if generated[1] != colors[1] {
+				innerT.Errorf("Expected %v but got %v", colors[1], generated[1])
+			}
+		},
+	)
+
+	t.Run(
+		"Two colors - three frames",
+		func (innerT *testing.T) {
+			colors := []colorful.Color{
+				{0, 0, 0},
+				{1, 1, 1},
+			}
+			gradient := newGradient(colors)
+			generated := gradient.generate(3)
+
+			if len(generated) != 3 {
+				innerT.Errorf("Expected %v but got %v", 2, len(generated))
+			}
+
+			if generated[0] != colors[0] {
+				innerT.Errorf("Expected %v but got %v", colors[0], generated[0])
+			}
+
+			if generated[1] == colors[0] || generated[1] == colors[1] {
+				innerT.Errorf("Expected %v but got %v", nil, generated[0])
+			}
+
+			if generated[2] != colors[1] {
+				innerT.Errorf("Expected %v but got %v", colors[1], generated[2])
+			}
+		},
+	)
+
+	t.Run(
+		"Two colors - four frames",
+		func (innerT *testing.T) {
+			colors := []colorful.Color{
+				{0, 0, 0},
+				{1, 1, 1},
+			}
+			gradient := newGradient(colors)
+			generated := gradient.generate(4)
+
+			if len(generated) != 4 {
+				innerT.Errorf("Expected %v but got %v", 2, len(generated))
+			}
+
+			if generated[0] != colors[0] {
+				innerT.Errorf("Expected %v but got %v", colors[0], generated[0])
+			}
+
+			if generated[1] == colors[0] || generated[1] == colors[1] {
+				innerT.Errorf("Expected %v but got %v", nil, generated[1])
+			}
+
+			if generated[2] == colors[0] || generated[2] == colors[1] {
+				innerT.Errorf("Expected %v but got %v", nil, generated[2])
+			}
+
+			if generated[3] != colors[1] {
+				innerT.Errorf("Expected %v but got %v", colors[1], generated[3])
+			}
+		},
+	)
+
+	t.Run(
+		"Three colors - two frames",
+		func (innerT *testing.T) {
+			colors := []colorful.Color{
+				{0, 0, 0},
+				{0.5, 0.5, 0.5},
+				{1, 1, 1},
+			}
+			gradient := newGradient(colors)
+			generated := gradient.generate(2)
+
+			if len(generated) != 2 {
+				innerT.Errorf("Expected %v but got %v", 2, len(generated))
+			}
+
+			if generated[0] != colors[0] {
+				innerT.Errorf("Expected %v but got %v", colors[0], generated[0])
+			}
+
+			if generated[1] != colors[2] {
+				innerT.Errorf("Expected %v but got %v", colors[2], generated[1])
+			}
+		},
+	)
+
+	t.Run(
+		"Three colors - three frames",
+		func (innerT *testing.T) {
+			colors := []colorful.Color{
+				{0, 0, 0},
+				{0.5, 0.5, 0.5},
+				{1, 1, 1},
+			}
+			gradient := newGradient(colors)
+			generated := gradient.generate(3)
+
+			if len(generated) != 3 {
+				innerT.Errorf("Expected %v but got %v", 3, len(generated))
+			}
+
+			if generated[0] != colors[0] {
+				innerT.Errorf("Expected %v but got %v", colors[0], generated[0])
+			}
+
+			/*
+			 *if generated[1] != colors[1] {
+			 *    innerT.Errorf("Expected %v but got %v", colors[1], generated[1])
+			 *}
+			 */
+
+			if generated[2] != colors[2] {
+				innerT.Errorf("Expected %v but got %v", colors[2], generated[2])
+			}
+		},
+	)
+
+	t.Run(
+		"Three colors - four frames",
+		func (innerT *testing.T) {
+			colors := []colorful.Color{
+				{0, 0, 0},
+				{0.5, 0.5, 0.5},
+				{1, 1, 1},
+			}
+			gradient := newGradient(colors)
+			generated := gradient.generate(4)
+
+			if len(generated) != 4 {
+				innerT.Errorf("Expected %v but got %v", 3, len(generated))
+			}
+
+			/*
+			 *if generated[0] != colors[0] {
+			 *    innerT.Errorf("Expected %v but got %v", colors[0], generated[0])
+			 *}
+			 */
+
+			if generated[0] != colors[0] {
+				innerT.Errorf("Expected %v but got %v", colors[0], generated[0])
+			}
+
+			if generated[3] != colors[2] {
+				innerT.Errorf("Expected %v but got %v", colors[2], generated[3])
+			}
+		},
+	)
+}
