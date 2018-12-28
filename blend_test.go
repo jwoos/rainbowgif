@@ -7,7 +7,7 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-func TestBlendAlpha(t *testing.T) {
+func TestBlendNormal(t *testing.T) {
 	t.Run(
 		"Top alpha 1 - bottom alpha 1",
 		func (innerT *testing.T) {
@@ -16,7 +16,7 @@ func TestBlendAlpha(t *testing.T) {
 			bottomColor := colorful.Color{1, 1, 1}
 			bottomAlpha := 1.0
 
-			color, alpha := blendAlpha(
+			color, alpha := blendNormal(
 				topColor,
 				topAlpha,
 				bottomColor,
@@ -41,7 +41,7 @@ func TestBlendAlpha(t *testing.T) {
 			bottomColor := colorful.Color{1, 1, 1}
 			bottomAlpha := 1.0
 
-			color, alpha := blendAlpha(
+			color, alpha := blendNormal(
 				topColor,
 				topAlpha,
 				bottomColor,
@@ -66,7 +66,7 @@ func TestBlendAlpha(t *testing.T) {
 			bottomColor := colorful.Color{1, 1, 1}
 			bottomAlpha := 0.5
 
-			color, alpha := blendAlpha(
+			color, alpha := blendNormal(
 				topColor,
 				topAlpha,
 				bottomColor,
@@ -91,7 +91,7 @@ func TestBlendAlpha(t *testing.T) {
 			bottomColor := colorful.Color{1, 1, 1}
 			bottomAlpha := 1.0
 
-			color, alpha := blendAlpha(
+			color, alpha := blendNormal(
 				topColor,
 				topAlpha,
 				bottomColor,

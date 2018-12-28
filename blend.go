@@ -1,11 +1,14 @@
 package main
 
+/* Functions for different blend modes
+ */
 
 import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-func blendAlpha(top colorful.Color, topAlpha float64, bottom colorful.Color, bottomAlpha float64) (colorful.Color, float64) {
+// top layer over bottom - most common
+func blendNormal(top colorful.Color, topAlpha float64, bottom colorful.Color, bottomAlpha float64) (colorful.Color, float64) {
 	alphaDelta := (1 - topAlpha) * bottomAlpha
 
 	alpha := alphaDelta + topAlpha

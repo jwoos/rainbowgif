@@ -61,7 +61,7 @@ func main() {
 				float64(b) / 255,
 			}
 
-			blendedPixel,_ := blendAlpha(overlayColors[frameIndex], 0.5, convertedPixel, 1)
+			blendedPixel,_ := blendNormal(overlayColors[frameIndex], 1, convertedPixel, 1)
 			blendedR, blendedG, blendedB, _ := blendedPixel.RGBA()
 			newPalette[pixelIndex] = color.NRGBA{
 				uint8(blendedR),
