@@ -50,6 +50,11 @@ func main() {
 		for pixelIndex, pixel := range originalPalette {
 			r, g, b, alpha := pixel.RGBA()
 
+			if alpha == 0 {
+				newPalette[pixelIndex] = pixel
+				continue
+			}
+
 			convertedPixel := colorful.Color{
 				float64(r) / 255,
 				float64(g) / 255,
