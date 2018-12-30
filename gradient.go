@@ -1,29 +1,25 @@
 package main
 
-
 import (
 	"math"
 
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-
 type Gradient struct {
-	colors []colorful.Color
+	colors    []colorful.Color
 	positions []float64
 }
 
-
 type GradientKeyFrame struct {
-	color colorful.Color
+	color    colorful.Color
 	position float64
-	index int
+	index    int
 }
-
 
 func newGradient(colors []colorful.Color) Gradient {
 	gradient := Gradient{
-		colors: make([]colorful.Color, len(colors)),
+		colors:    make([]colorful.Color, len(colors)),
 		positions: make([]float64, len(colors)),
 	}
 	copy(gradient.colors, colors)
@@ -41,7 +37,6 @@ func newGradient(colors []colorful.Color) Gradient {
 
 	return gradient
 }
-
 
 func (gradient Gradient) generate(frameCount int) []colorful.Color {
 	generated := make([]colorful.Color, frameCount)
@@ -63,7 +58,6 @@ func (gradient Gradient) generate(frameCount int) []colorful.Color {
 	return generated
 }
 
-
 func (gradient Gradient) positionSearch(position float64) []GradientKeyFrame {
 	length := len(gradient.colors) - 1
 	base := 1.0 / float64(length)
@@ -76,23 +70,23 @@ func (gradient Gradient) positionSearch(position float64) []GradientKeyFrame {
 
 		return []GradientKeyFrame{
 			{
-				color: sliced[0],
+				color:    sliced[0],
 				position: gradient.positions[lowerIndex],
-				index: lowerIndex,
+				index:    lowerIndex,
 			},
 			{
-				color: sliced[1],
-				position: gradient.positions[lowerIndex + 1],
-				index: lowerIndex + 1,
+				color:    sliced[1],
+				position: gradient.positions[lowerIndex+1],
+				index:    lowerIndex + 1,
 			},
 		}
 	}
 
 	return []GradientKeyFrame{
 		{
-			color: sliced[0],
+			color:    sliced[0],
 			position: gradient.positions[lowerIndex],
-			index: lowerIndex,
+			index:    lowerIndex,
 		},
 	}
 }

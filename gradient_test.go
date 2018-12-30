@@ -1,17 +1,15 @@
 package main
 
-
 import (
 	"testing"
 
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-
 func TestNewGradient(t *testing.T) {
 	t.Run(
 		"Zero color",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			gradient := newGradient(
 				[]colorful.Color{},
 			)
@@ -24,7 +22,7 @@ func TestNewGradient(t *testing.T) {
 
 	t.Run(
 		"One color",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			gradient := newGradient(
 				[]colorful.Color{
 					{0, 0, 0},
@@ -43,7 +41,7 @@ func TestNewGradient(t *testing.T) {
 
 	t.Run(
 		"Two colors",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			gradient := newGradient(
 				[]colorful.Color{
 					{0, 0, 0},
@@ -68,11 +66,10 @@ func TestNewGradient(t *testing.T) {
 	)
 }
 
-
 func TestPositionSearch(t *testing.T) {
 	t.Run(
 		"One color",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 			}
@@ -94,7 +91,7 @@ func TestPositionSearch(t *testing.T) {
 
 	t.Run(
 		"Two colors",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{1, 1, 1},
@@ -125,7 +122,7 @@ func TestPositionSearch(t *testing.T) {
 
 	t.Run(
 		"Three colors",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{0.5, 0.5, 0.5},
@@ -179,7 +176,7 @@ func TestPositionSearch(t *testing.T) {
 
 	t.Run(
 		"Three colors",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{0.33, 0.33, 0.33},
@@ -258,7 +255,7 @@ func TestPositionSearch(t *testing.T) {
 
 	t.Run(
 		"Four colors",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{0.25, 0.25, 0.25},
@@ -359,11 +356,10 @@ func TestPositionSearch(t *testing.T) {
 	)
 }
 
-
 func TestGenerate(t *testing.T) {
 	t.Run(
 		"Two colors - two frames",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{1, 1, 1},
@@ -387,7 +383,7 @@ func TestGenerate(t *testing.T) {
 
 	t.Run(
 		"Two colors - three frames",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{1, 1, 1},
@@ -415,7 +411,7 @@ func TestGenerate(t *testing.T) {
 
 	t.Run(
 		"Two colors - four frames",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{1, 1, 1},
@@ -447,7 +443,7 @@ func TestGenerate(t *testing.T) {
 
 	t.Run(
 		"Three colors - two frames",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{0.5, 0.5, 0.5},
@@ -472,7 +468,7 @@ func TestGenerate(t *testing.T) {
 
 	t.Run(
 		"Three colors - three frames",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{0.5, 0.5, 0.5},
@@ -503,7 +499,7 @@ func TestGenerate(t *testing.T) {
 
 	t.Run(
 		"Three colors - four frames",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			colors := []colorful.Color{
 				{0, 0, 0},
 				{0.5, 0.5, 0.5},

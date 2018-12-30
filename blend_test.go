@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"testing"
 
@@ -10,7 +9,7 @@ import (
 func TestBlendNormal(t *testing.T) {
 	t.Run(
 		"Top alpha 1 - bottom alpha 1",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			topColor := colorful.Color{0, 0, 0}
 			topAlpha := 1.0
 			bottomColor := colorful.Color{1, 1, 1}
@@ -35,7 +34,7 @@ func TestBlendNormal(t *testing.T) {
 
 	t.Run(
 		"Top alpha 0 - bottom alpha 1",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			topColor := colorful.Color{0, 0, 0}
 			topAlpha := 0.0
 			bottomColor := colorful.Color{1, 1, 1}
@@ -60,7 +59,7 @@ func TestBlendNormal(t *testing.T) {
 
 	t.Run(
 		"Top alpha 0.5 - bottom alpha 0.5",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			topColor := colorful.Color{0, 0, 0}
 			topAlpha := 0.5
 			bottomColor := colorful.Color{1, 1, 1}
@@ -85,7 +84,7 @@ func TestBlendNormal(t *testing.T) {
 
 	t.Run(
 		"Top alpha 0.5 - bottom alpha 1.0",
-		func (innerT *testing.T) {
+		func(innerT *testing.T) {
 			topColor := colorful.Color{0, 0, 0}
 			topAlpha := 0.5
 			bottomColor := colorful.Color{1, 1, 1}

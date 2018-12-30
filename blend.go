@@ -12,15 +12,14 @@ func blendNormal(top colorful.Color, topAlpha float64, bottom colorful.Color, bo
 	alphaDelta := (1 - topAlpha) * bottomAlpha
 
 	alpha := alphaDelta + topAlpha
-	red := (alphaDelta * bottom.R + topAlpha * top.R) / alpha
-	green := (alphaDelta * bottom.G + topAlpha * top.G) / alpha
-	blue := (alphaDelta * bottom.B + topAlpha * top.B) / alpha
+	red := (alphaDelta*bottom.R + topAlpha*top.R) / alpha
+	green := (alphaDelta*bottom.G + topAlpha*top.G) / alpha
+	blue := (alphaDelta*bottom.B + topAlpha*top.B) / alpha
 
 	result := colorful.Color{R: red / 255, G: green / 255, B: blue / 255}
 
 	return result.Clamped(), alpha
 }
-
 
 /* color blend
  * preserves the luma of the bottom
@@ -34,7 +33,6 @@ func blendColor(top colorful.Color, bottom colorful.Color) colorful.Color {
 
 	return result.Clamped()
 }
-
 
 /* color blend
  * preserves the chroma and luma of the bottom

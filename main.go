@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"flag"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/lucasb-eyer/go-colorful"
 )
-
 
 func main() {
 	input := flag.String("input", "", "The input file name")
@@ -79,7 +77,7 @@ func main() {
 		frame.Palette = newPalette
 	}
 
-	file, err = os.OpenFile(*output, os.O_RDWR | os.O_CREATE, 0644)
+	file, err = os.OpenFile(*output, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		os.Exit(1)
