@@ -2,6 +2,7 @@ package main
 
 
 import (
+	"flag"
 	"fmt"
 	"image/color"
 	"image/gif"
@@ -12,7 +13,11 @@ import (
 
 
 func main() {
-	file, err := os.Open("test.gif")
+	input := flag.String("input", "", "The input file name")
+	output := flag.String("output", "", "The output file name")
+	flag.Parse()
+
+	file, err := os.Open(*input)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		os.Exit(1)
@@ -74,7 +79,7 @@ func main() {
 		frame.Palette = newPalette
 	}
 
-	file, err = os.OpenFile("test-output.gif", os.O_RDWR | os.O_CREATE, 0644)
+	file, err = os.OpenFile(*output, os.O_RDWR | os.O_CREATE, 0644)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		os.Exit(1)
