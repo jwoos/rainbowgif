@@ -23,6 +23,7 @@ func main() {
 		fmt.Println("Error decoding: ", err)
 		os.Exit(1)
 	}
+	file.Close()
 
 	frameCount := len(image.Image)
 
@@ -35,6 +36,7 @@ func main() {
 			{0, 1, 0},
 			{0, 0, 1},
 			{139.0 / 255.0, 0, 1},
+			{0.9, 0, 0},
 		},
 	)
 	overlayColors := gradient.generate(frameCount)
@@ -61,7 +63,8 @@ func main() {
 				float64(b) / 255,
 			}
 
-			blendedPixel,_ := blendNormal(overlayColors[frameIndex], 1, convertedPixel, 1)
+			//blendedPixel, _ := blendNormal(overlayColors[frameIndex], 0.5, convertedPixel, 1)
+			blendedPixel := blendColor(overlayColors[frameIndex], convertedPixel)
 			blendedR, blendedG, blendedB, _ := blendedPixel.RGBA()
 			newPalette[pixelIndex] = color.NRGBA{
 				uint8(blendedR),
@@ -88,4 +91,5 @@ func main() {
 		fmt.Println("Error encoding image: ", err)
 		os.Exit(1)
 	}
+	file.Close()
 }

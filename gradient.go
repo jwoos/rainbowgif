@@ -53,7 +53,7 @@ func (gradient Gradient) generate(frameCount int) []colorful.Color {
 		keyframes := gradient.positionSearch(position)
 
 		if len(keyframes) == 1 {
-			generated[i] = keyframes[0].color
+			generated[i] = keyframes[0].color.Clamped()
 		} else {
 			relativePosition := (position - keyframes[0].position) / (keyframes[1].position - keyframes[0].position)
 			generated[i] = keyframes[0].color.BlendHcl(keyframes[1].color, relativePosition).Clamped()
