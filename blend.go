@@ -4,8 +4,6 @@ package main
  */
 
 import (
-	"fmt"
-
 	"github.com/lucasb-eyer/go-colorful"
 )
 
@@ -24,15 +22,13 @@ func blendNormal(top colorful.Color, topAlpha float64, bottom colorful.Color, bo
 }
 
 
-// Hue: 0 - 360 Chroma: -1 - 1 Luma: 0 - 1
-
 /* color blend
  * preserves the luma of the bottom
  * adopts the hue and chroma of the top
  */
 func blendColor(top colorful.Color, bottom colorful.Color) colorful.Color {
 	topHue, topChroma, _ := top.Hcl()
-	_, _, bottomLuma := bottom.Clamped().Hcl()
+	_, _, bottomLuma := bottom.Hcl()
 
 	result := colorful.Hcl(topHue, topChroma, bottomLuma)
 
@@ -46,13 +42,9 @@ func blendColor(top colorful.Color, bottom colorful.Color) colorful.Color {
  */
 func blendHue(top colorful.Color, bottom colorful.Color) colorful.Color {
 	topHue, _, _ := top.Hcl()
-	_, bottomChroma, bottomLuma := bottom.Clamped().Hcl()
-
-	fmt.Println(topHue, bottomChroma, bottomLuma)
+	_, bottomChroma, bottomLuma := bottom.Hcl()
 
 	result := colorful.Hcl(topHue, bottomChroma, bottomLuma)
-
-	fmt.Println(result)
 
 	return result.Clamped()
 }

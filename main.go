@@ -50,26 +50,23 @@ func main() {
 		newPalette := make([]color.Color, len(frame.Palette))
 
 		for pixelIndex, pixel := range originalPalette {
-			r, g, b, alpha := pixel.RGBA()
+			_, _, _, alpha := pixel.RGBA()
+			convertedPixel, ok := colorful.MakeColor(pixel)
 
-			if alpha == 0 {
+			if alpha == 0 || !ok {
 				newPalette[pixelIndex] = pixel
 				continue
 			}
 
-			convertedPixel := colorful.Color{
-				float64(r) / 255,
-				float64(g) / 255,
-				float64(b) / 255,
-			}
+			convertedPixel = convertedPixel.Clamped()
 
-			//blendedPixel, _ := blendNormal(overlayColors[frameIndex], 0.5, convertedPixel, 1)
 			blendedPixel := blendColor(overlayColors[frameIndex], convertedPixel)
-			blendedR, blendedG, blendedB, _ := blendedPixel.RGBA()
+
+			blendedR, blendedG, blendedB := blendedPixel.RGB255()
 			newPalette[pixelIndex] = color.NRGBA{
-				uint8(blendedR),
-				uint8(blendedG),
-				uint8(blendedB),
+				blendedR,
+				blendedG,
+				blendedB,
 				255,
 			}
 		}
