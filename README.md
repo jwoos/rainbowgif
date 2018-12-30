@@ -6,7 +6,7 @@ Before:
 ![Before](images/fidget_spinner.gif)
 
 After:
-![After](images/fidget_spinner.gif)
+![After](images/fidget_spinner_rainbow.gif)
 
 ## Usage
 Clone it and assuming you have Go a version greater than or equal to 1.11, you should just be able to do a `go mod download` to download all the modules and then `go build`. This should output a binary in the directory. Run it with two mandatory arguments: `-input` and `-output`, pretty self explanatory.
