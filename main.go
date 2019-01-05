@@ -3,19 +3,72 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
 	"image/color"
 	"image/gif"
 	"os"
+	"runtime"
 
 	"github.com/lucasb-eyer/go-colorful"
 )
 
+
+/* frame is just `*image.Paletted`
+ * `color.Palette` is just `[]color.Color`
+ * `color.Color` is an interface implementing `RGBA()`
+ */
+func prepareFrame(index int, frame *image.Paletted, overlayColor colorful.Color) {
+	originalPalette := frame.Palette
+	newPalette := make([]color.Color, len(frame.Palette))
+
+	for pixelIndex, pixel := range originalPalette {
+		_, _, _, alpha := pixel.RGBA()
+		convertedPixel, ok := colorful.MakeColor(pixel)
+
+		if alpha == 0 || !ok {
+			newPalette[pixelIndex] = pixel
+			continue
+		}
+
+		convertedPixel = convertedPixel.Clamped()
+
+		blendedPixel := blendColor(overlayColor, convertedPixel)
+
+		blendedR, blendedG, blendedB := blendedPixel.RGB255()
+		newPalette[pixelIndex] = color.NRGBA{
+			blendedR,
+			blendedG,
+			blendedB,
+			255,
+		}
+	}
+
+	frame.Palette = newPalette
+}
+
 func main() {
-	input := flag.String("input", "", "The input file name")
-	output := flag.String("output", "", "The output file name")
+	var input string
+	flag.StringVar(&input, "input", "", "The input file name")
+
+	var output string
+	flag.StringVar(&output, "output", "", "The output file name")
+
+	var threads int
+	flag.IntVar(&threads, "threads", runtime.NumCPU(), "The number of go threads to use")
+
 	flag.Parse()
 
-	file, err := os.Open(*input)
+	if threads <= 0 {
+		fmt.Println("Thread count must be at least 1")
+		os.Exit(1)
+	}
+
+	if input == "" || output == "" {
+		fmt.Println("Input and output must be specified")
+		os.Exit(1)
+	}
+
+	file, err := os.Open(input)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		os.Exit(1)
@@ -44,40 +97,34 @@ func main() {
 	)
 	overlayColors := gradient.generate(frameCount)
 
-	/* frame is just `*image.Paletted`
-	 * `color.Palette` is just `[]color.Color`
-	 * `color.Color` is an interface implementing `RGBA()`
-	 */
-	for frameIndex, frame := range image.Image {
-		originalPalette := frame.Palette
-		newPalette := make([]color.Color, len(frame.Palette))
+	framesPerThread := len(image.Image) / threads + 1
+	ch := make(chan int)
+	barrier := 0
 
-		for pixelIndex, pixel := range originalPalette {
-			_, _, _, alpha := pixel.RGBA()
-			convertedPixel, ok := colorful.MakeColor(pixel)
+	for i := 0; i < threads; i++ {
+		go func(base int) {
+			for j := 0; j < framesPerThread; j++ {
+				index := base * framesPerThread + j
 
-			if alpha == 0 || !ok {
-				newPalette[pixelIndex] = pixel
-				continue
+				if index >= len(image.Image) {
+					break
+				}
+
+				// do actual work in here
+				prepareFrame(index, image.Image[index], overlayColors[index])
 			}
 
-			convertedPixel = convertedPixel.Clamped()
-
-			blendedPixel := blendColor(overlayColors[frameIndex], convertedPixel)
-
-			blendedR, blendedG, blendedB := blendedPixel.RGB255()
-			newPalette[pixelIndex] = color.NRGBA{
-				blendedR,
-				blendedG,
-				blendedB,
-				255,
-			}
-		}
-
-		frame.Palette = newPalette
+			// thread is done
+			ch <- 1
+		} (i)
 	}
 
-	file, err = os.OpenFile(*output, os.O_RDWR|os.O_CREATE, 0644)
+	// wait for all threads to synchronize
+	for barrier != threads {
+		barrier += <- ch
+	}
+
+	file, err = os.OpenFile(output, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		os.Exit(1)
