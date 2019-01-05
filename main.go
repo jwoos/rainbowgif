@@ -12,7 +12,6 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-
 /* frame is just `*image.Paletted`
  * `color.Palette` is just `[]color.Color`
  * `color.Color` is an interface implementing `RGBA()`
@@ -97,14 +96,14 @@ func main() {
 	)
 	overlayColors := gradient.generate(frameCount)
 
-	framesPerThread := len(image.Image) / threads + 1
+	framesPerThread := len(image.Image)/threads + 1
 	ch := make(chan int)
 	barrier := 0
 
 	for i := 0; i < threads; i++ {
 		go func(base int) {
 			for j := 0; j < framesPerThread; j++ {
-				index := base * framesPerThread + j
+				index := base*framesPerThread + j
 
 				if index >= len(image.Image) {
 					break
@@ -116,12 +115,12 @@ func main() {
 
 			// thread is done
 			ch <- 1
-		} (i)
+		}(i)
 	}
 
 	// wait for all threads to synchronize
 	for barrier != threads {
-		barrier += <- ch
+		barrier += <-ch
 	}
 
 	file, err = os.OpenFile(output, os.O_RDWR|os.O_CREATE, 0644)
