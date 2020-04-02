@@ -1,3 +1,5 @@
-module github.com/jwoos/go_rainbowgif
+module github.com/jwoos/rainbowgif
 
-require github.com/lucasb-eyer/go-colorful v0.0.0-20181028223441-12d3b2882a08
+go 1.11
+
+require github.com/lucasb-eyer/go-colorful v1.0.3
