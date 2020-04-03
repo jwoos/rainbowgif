@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"image"
@@ -8,6 +9,7 @@ import (
 	"image/gif"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/lucasb-eyer/go-colorful"
 )
@@ -45,14 +47,52 @@ func prepareFrame(index int, frame *image.Paletted, overlayColor colorful.Color)
 	frame.Palette = newPalette
 }
 
+func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
+	var colors []colorful.Color
+
+	if len(gradientColors) != 0 {
+		colorHexes := strings.Split(gradientColors, ",")
+		colors = make([]colorful.Color, len(colorHexes))
+		for i, hex := range colorHexes {
+			color, err := colorful.Hex("#" + hex)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Invalid color: %s", hex))
+			}
+			colors[i] = color
+		}
+	} else {
+		// ROYGBV
+		colors = []colorful.Color{
+			{1, 0, 0},
+			{1, 127.0 / 255.0, 0},
+			{1, 1, 0},
+			{0, 1, 0},
+			{0, 0, 1},
+			{139.0 / 255.0, 0, 1},
+			{0.9, 0, 0},
+		}
+	}
+
+	return colors, nil
+}
+
 func main() {
 	var threads int
 	flag.IntVar(&threads, "threads", runtime.NumCPU(), "The number of go threads to use")
+
+	var gradientColors string
+	flag.StringVar(&gradientColors, "gradient", "", "A list of colors in hex without # separated by comma to use as the gradient")
 
 	flag.Parse()
 
 	if threads <= 0 {
 		fmt.Println("Thread count must be at least 1")
+		os.Exit(1)
+	}
+
+	colors, err := parseGradientColors(gradientColors)
+	if err != nil {
+		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
@@ -81,18 +121,7 @@ func main() {
 
 	frameCount := len(image.Image)
 
-	// ROYGBV
-	gradient := newGradient(
-		[]colorful.Color{
-			{1, 0, 0},
-			{1, 127.0 / 255.0, 0},
-			{1, 1, 0},
-			{0, 1, 0},
-			{0, 0, 1},
-			{139.0 / 255.0, 0, 1},
-			{0.9, 0, 0},
-		},
-	)
+	gradient := newGradient(colors)
 	overlayColors := gradient.generate(frameCount)
 
 	framesPerThread := len(image.Image)/threads + 1
