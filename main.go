@@ -46,12 +46,6 @@ func prepareFrame(index int, frame *image.Paletted, overlayColor colorful.Color)
 }
 
 func main() {
-	var input string
-	flag.StringVar(&input, "input", "", "The input file name")
-
-	var output string
-	flag.StringVar(&output, "output", "", "The output file name")
-
 	var threads int
 	flag.IntVar(&threads, "threads", runtime.NumCPU(), "The number of go threads to use")
 
@@ -62,10 +56,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	if input == "" || output == "" {
-		fmt.Println("Input and output must be specified")
+	positionalArgs := flag.Args()
+
+	if len(positionalArgs) != 2 {
+		fmt.Println("Expected two positional arguments: input and output")
 		os.Exit(1)
 	}
+
+	input := positionalArgs[0]
+	output := positionalArgs[1]
 
 	file, err := os.Open(input)
 	if err != nil {
