@@ -17,16 +17,28 @@ type GradientKeyFrame struct {
 	index    int
 }
 
-func newGradient(colors []colorful.Color) Gradient {
-	gradient := Gradient{
-		colors:    make([]colorful.Color, len(colors)),
-		positions: make([]float64, len(colors)),
+func newGradient(colors []colorful.Color, wrap bool) Gradient {
+	var gradient Gradient
+
+	if wrap && len(colors) > 1 {
+		// wrap around
+		gradient = Gradient{
+			colors:    make([]colorful.Color, len(colors)+1),
+			positions: make([]float64, len(colors)+1),
+		}
+		copy(gradient.colors, colors)
+		gradient.colors[len(colors)] = colors[0]
+	} else {
+		gradient = Gradient{
+			colors:    make([]colorful.Color, len(colors)),
+			positions: make([]float64, len(colors)),
+		}
+		copy(gradient.colors, colors)
 	}
-	copy(gradient.colors, colors)
 
 	colorCount := len(gradient.colors) - 1
 
-	if len(colors) == 1 {
+	if len(gradient.colors) == 1 {
 		gradient.positions[0] = 0.0
 	} else {
 		// Distribute the colors evenly

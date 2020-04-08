@@ -69,7 +69,6 @@ func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
 			{0, 1, 0},
 			{0, 0, 1},
 			{139.0 / 255.0, 0, 1},
-			{0.9, 0, 0},
 		}
 	}
 
@@ -121,7 +120,7 @@ func main() {
 
 	frameCount := len(image.Image)
 
-	gradient := newGradient(colors)
+	gradient := newGradient(colors, true)
 	overlayColors := gradient.generate(frameCount)
 
 	framesPerThread := len(image.Image)/threads + 1
