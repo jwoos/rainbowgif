@@ -14,7 +14,7 @@ Clone it and assuming you have Go a version greater than or equal to 1.11, you s
 ### Options
 - `threads`: The number of goroutines to use when processing the GIF
 - `gradient`: The list of colors to use as the overlay. When omitted, it will default to ROYGBV.
-	- **NOTE** - please note that at this point, you will have to provide a last color that's similar to your first to get a smooth loop. This will be fixed in an upcoming change.
+- `loop_count`: The number of times to loop over the GIF. The output GIF will be `loop_count` times longer. Defaults to 1.
 
 ## Technical Detail
 This makes use of https://github.com/lucasb-eyer/go-colorful - this library saved me a lot of travel since the standard color library doesn't cover all this.
