@@ -18,16 +18,18 @@ import (
  * `color.Palette` is just `[]color.Color`
  * `color.Color` is an interface implementing `RGBA()`
  */
-func prepareFrame(index int, frame *image.Paletted, overlayColor colorful.Color) {
-	originalPalette := frame.Palette
-	newPalette := make([]color.Color, len(frame.Palette))
+func prepareFrame(src *image.Paletted, dst *image.Paletted, overlayColor colorful.Color) {
+	dst.Pix = src.Pix
+	dst.Stride = src.Stride
+	dst.Rect = src.Rect
+	dst.Palette = make([]color.Color, len(src.Palette))
 
-	for pixelIndex, pixel := range originalPalette {
+	for pixelIndex, pixel := range src.Palette {
 		_, _, _, alpha := pixel.RGBA()
 		convertedPixel, ok := colorful.MakeColor(pixel)
 
 		if alpha == 0 || !ok {
-			newPalette[pixelIndex] = pixel
+			dst.Palette[pixelIndex] = pixel
 			continue
 		}
 
@@ -36,15 +38,13 @@ func prepareFrame(index int, frame *image.Paletted, overlayColor colorful.Color)
 		blendedPixel := blendColor(overlayColor, convertedPixel)
 
 		blendedR, blendedG, blendedB := blendedPixel.RGB255()
-		newPalette[pixelIndex] = color.NRGBA{
+		dst.Palette[pixelIndex] = color.NRGBA{
 			blendedR,
 			blendedG,
 			blendedB,
 			255,
 		}
 	}
-
-	frame.Palette = newPalette
 }
 
 func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
@@ -77,10 +77,13 @@ func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
 
 func main() {
 	var threads int
-	flag.IntVar(&threads, "threads", runtime.NumCPU(), "The number of go threads to use")
+	flag.IntVar(&threads, "threads", runtime.NumCPU()/2, "The number of go threads to use")
 
 	var gradientColors string
 	flag.StringVar(&gradientColors, "gradient", "", "A list of colors in hex without # separated by comma to use as the gradient")
+
+	var loopCount int
+	flag.IntVar(&loopCount, "loop_count", 1, "The number of times ot loop through thr GIF")
 
 	flag.Parse()
 
@@ -92,6 +95,11 @@ func main() {
 	colors, err := parseGradientColors(gradientColors)
 	if err != nil {
 		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	if loopCount < 1 {
+		fmt.Println("Loop count must be at least 1")
 		os.Exit(1)
 	}
 
@@ -111,33 +119,48 @@ func main() {
 		os.Exit(1)
 	}
 
-	image, err := gif.DecodeAll(file)
+	img, err := gif.DecodeAll(file)
 	if err != nil {
 		fmt.Println("Error decoding: ", err)
 		os.Exit(1)
 	}
 	file.Close()
 
-	frameCount := len(image.Image)
+	frameCount := len(img.Image) * loopCount
+	newFrames := make([]*image.Paletted, frameCount)
+	for i := range newFrames {
+		newFrames[i] = new(image.Paletted)
+	}
 
 	gradient := newGradient(colors, true)
 	overlayColors := gradient.generate(frameCount)
 
-	framesPerThread := len(image.Image)/threads + 1
+	framesPerThread := len(img.Image)/threads + 1
 	ch := make(chan int)
 	barrier := 0
 
+	frameIndex := 0
+	normalizedFrameIndex := 0
 	for i := 0; i < threads; i++ {
 		go func(base int) {
-			for j := 0; j < framesPerThread; j++ {
-				index := base*framesPerThread + j
-
-				if index >= len(image.Image) {
+			processed := 0
+			for processed < framesPerThread {
+				if frameIndex >= len(newFrames) {
 					break
 				}
 
+				if normalizedFrameIndex >= len(img.Image) {
+					normalizedFrameIndex = 0
+				}
+
 				// do actual work in here
-				prepareFrame(index, image.Image[index], overlayColors[index])
+				prepareFrame(
+					img.Image[normalizedFrameIndex],
+					newFrames[frameIndex],
+					overlayColors[frameIndex],
+				)
+				frameIndex++
+				normalizedFrameIndex++
 			}
 
 			// thread is done
@@ -150,16 +173,30 @@ func main() {
 		barrier += <-ch
 	}
 
+	newDelay := make([]int, len(newFrames))
+	for i := range newDelay {
+		newDelay[i] = img.Delay[i%len(img.Delay)]
+	}
+
+	newDisposal := make([]byte, len(newFrames))
+	for i := range newDisposal {
+		newDisposal[i] = img.Disposal[i%len(img.Disposal)]
+	}
+
+	img.Image = newFrames
+	img.Delay = newDelay
+	img.Disposal = newDisposal
+
 	file, err = os.OpenFile(output, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		os.Exit(1)
 	}
 
-	image.Config.ColorModel = nil
-	image.BackgroundIndex = 0
+	img.Config.ColorModel = nil
+	img.BackgroundIndex = 0
 
-	err = gif.EncodeAll(file, image)
+	err = gif.EncodeAll(file, img)
 	if err != nil {
 		fmt.Println("Error encoding image: ", err)
 		os.Exit(1)
