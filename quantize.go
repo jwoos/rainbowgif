@@ -15,7 +15,12 @@ func newQuantization(count int) Quantization {
 	}
 }
 
+// TODO this should return a mapping of old colors to new colors
 func (q Quantization) scalar(colors []color.RGBA) []color.RGBA {
+	if len(colors) < q.count {
+		return colors
+	}
+
 	palette := make(map[color.RGBA]int)
 	for _, c := range colors {
 		// pack R into 3 bits, G into 3 bits, and B into 2 bits
@@ -26,11 +31,32 @@ func (q Quantization) scalar(colors []color.RGBA) []color.RGBA {
 			A: 1,
 		}
 
-		_, okay := palette[newColor]
-		if !okay {
-			palette[newColor] = 1
+		palette[newColor] = 0
+	}
+
+	paletteSlice := make([]color.RGBA, len(palette))
+	index := 0
+	for k, _ := range palette {
+		paletteSlice[index] = k
+		index++
+	}
+
+	return paletteSlice
+}
+
+func (q Quantization) populosity(colors []color.RGBA) []color.RGBA {
+	if len(colors) < q.count {
+		return colors
+	}
+
+	palette := make(map[color.RGBA]int)
+
+	for _, c := range colors {
+		_, okay := palette[c]
+		if okay {
+			palette[c]++
 		} else {
-			palette[newColor]++
+			palette[c] = 1
 		}
 	}
 
@@ -48,18 +74,17 @@ func (q Quantization) scalar(colors []color.RGBA) []color.RGBA {
 	}
 
 	sort.Slice(temp, func(i int, j int) bool {
-		return temp[i].count < temp[j].count
+		return temp[i].count > temp[j].count
 	})
 
-	paletteSlice := make([]color.RGBA, len(temp))
-	for i, x := range temp {
-		paletteSlice[i] = x.color
+	// lose any extra colors
+	if len(temp) > q.count {
+		temp = temp[:q.count]
 	}
 
-	return paletteSlice
-}
 
-func (q Quantization) population(colors []color.RGBA) {
+	// TODO do a 3D search to return a palette mapping
+	return colors
 }
 
 func (q Quantization) medianCut() {
