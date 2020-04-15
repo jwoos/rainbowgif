@@ -3,6 +3,7 @@ package main
 import (
 	"image/color"
 	"sort"
+	"github.com/dhconnelly/rtreego"
 )
 
 type Quantization struct {
@@ -44,28 +45,37 @@ func (q Quantization) scalar(colors []color.RGBA) []color.RGBA {
 	return paletteSlice
 }
 
+// for R-tree
+type Point struct {
+	location rtreego.Point
+}
+
+func (p *Point) Bounds() *rtreego.Rect {
+	return p.location.ToRect(0.001)
+}
+
 func (q Quantization) populosity(colors []color.RGBA) []color.RGBA {
 	if len(colors) < q.count {
 		return colors
 	}
 
-	palette := make(map[color.RGBA]int)
+	countMap := make(map[color.RGBA]int)
 
 	for _, c := range colors {
-		_, okay := palette[c]
+		_, okay := countMap[c]
 		if okay {
-			palette[c]++
+			countMap[c]++
 		} else {
-			palette[c] = 1
+			countMap[c] = 1
 		}
 	}
 
 	temp := make([]struct{
 		color color.RGBA
 		count int
-	}, len(palette))
+	}, len(countMap))
 	index := 0
-	for k, v := range palette {
+	for k, v := range countMap {
 		temp[index] = struct{
 			color color.RGBA
 			count int
@@ -82,19 +92,36 @@ func (q Quantization) populosity(colors []color.RGBA) []color.RGBA {
 		temp = temp[:q.count]
 	}
 
+	rt := rtreego.NewTree(3, 10, 30)
 
-	// TODO do a 3D search to return a palette mapping
-	return colors
+	for _, c := range temp {
+		pt := Point{location: []float64{float64(c.color.R), float64(c.color.G), float64(c.color.B)}}
+		rt.Insert(&pt)
+	}
+
+	palette := make([]color.RGBA, len(colors))
+	for i, originalColors := range colors {
+		pt := []float64{float64(originalColors.R), float64(originalColors.G), float64(originalColors.B)}
+		nearestPt := rt.NearestNeighbor(pt).Bounds()
+		palette[i] = color.RGBA{
+			R: uint8(nearestPt.PointCoord(0)),
+			G: uint8(nearestPt.PointCoord(1)),
+			B: uint8(nearestPt.PointCoord(2)),
+			A: 1,
+		}
+	}
+
+	return palette
 }
 
 func (q Quantization) medianCut() {
-
+	panic("Not implemented")
 }
 
 func (q Quantization) octree() {
-
+	panic("Not implemented")
 }
 
 func (q Quantization) kmeans() {
-
+	panic("Not implemented")
 }

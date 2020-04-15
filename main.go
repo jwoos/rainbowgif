@@ -7,6 +7,8 @@ import (
 	"image"
 	"image/color"
 	"image/gif"
+	"image/jpeg"
+	"image/png"
 	"os"
 	"runtime"
 	"strings"
@@ -47,6 +49,10 @@ func prepareFrame(src *image.Paletted, dst *image.Paletted, overlayColor colorfu
 	}
 }
 
+func staticImageTransform() {
+
+}
+
 func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
 	var colors []colorful.Color
 
@@ -76,6 +82,11 @@ func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
 }
 
 func main() {
+	// register image formats
+	image.RegisterFormat("jpeg", "\xFF\xD8", jpeg.Decode, jpeg.DecodeConfig)
+	image.RegisterFormat("png", "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", png.Decode, png.DecodeConfig)
+	image.RegisterFormat("gif", "\x47\x49\x46\x38\x39\x61", gif.Decode, gif.DecodeConfig)
+
 	var threads int
 	flag.IntVar(&threads, "threads", runtime.NumCPU()/2, "The number of go threads to use")
 
