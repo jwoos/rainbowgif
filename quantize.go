@@ -174,6 +174,8 @@ func (q Quantization) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		sorted = sorted[:q.count]
 	}
 
+	// TODO - we don't need an R-tree the Go std library has a Euclidean search function on Palette
+	// just use that wrapped in goroutines :(
 	rt := rtreego.NewTree(3, 10, 30)
 
 	for _, c := range sorted {

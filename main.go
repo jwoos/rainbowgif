@@ -49,10 +49,6 @@ func prepareFrame(src *image.Paletted, dst *image.Paletted, overlayColor colorfu
 	}
 }
 
-func staticImageTransform() {
-
-}
-
 func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
 	var colors []colorful.Color
 
@@ -83,22 +79,30 @@ func parseGradientColors(gradientColors string) ([]colorful.Color, error) {
 
 func main() {
 	// register image formats
-	image.RegisterFormat("jpeg", "\xFF\xD8", jpeg.Decode, jpeg.DecodeConfig)
+	image.RegisterFormat("jpg", "\xFF\xD8", jpeg.Decode, jpeg.DecodeConfig)
 	image.RegisterFormat("png", "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", png.Decode, png.DecodeConfig)
-	image.RegisterFormat("gif", "\x47\x49\x46\x38\x39\x61", gif.Decode, gif.DecodeConfig)
 
-	var threads int
-	flag.IntVar(&threads, "threads", runtime.NumCPU()/2, "The number of go threads to use")
+	var threads uint
+	flag.UintVar(&threads, "threads", uint(runtime.NumCPU())/2, "The number of go threads to use")
 
 	var gradientColors string
 	flag.StringVar(&gradientColors, "gradient", "", "A list of colors in hex without # separated by comma to use as the gradient")
 
-	var loopCount int
-	flag.IntVar(&loopCount, "loop_count", 1, "The number of times ot loop through thr GIF")
+	var loopCount uint
+	flag.UintVar(&loopCount, "loop_count", 1, "The number of times ot loop through thr GIF or the number of frames to show")
+
+	var static bool
+	flag.BoolVar(&static, "static", false, "Whether it's a static image (JPG/PNG) or not")
+
+	var delay uint
+	flag.UintVar(&delay, "delay", 0, "The delay between frames")
+
+	var quantization string
+	flag.StringVar(&quantization, "quantization", "mediancut", "Quantization algorithm to use")
 
 	flag.Parse()
 
-	if threads <= 0 {
+	if threads < 1 {
 		fmt.Println("Thread count must be at least 1")
 		os.Exit(1)
 	}
@@ -130,14 +134,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	img, err := gif.DecodeAll(file)
+	var img *gif.GIF
+
+	if static {
+		staticImg, format, err := image.Decode(file)
+		if err != nil {
+			fmt.Println("Error decoding static image: ", err)
+			os.Exit(1)
+		}
+		img, err = staticTransform(staticImg, format, quantization, loopCount, delay)
+	} else {
+		img, err = gif.DecodeAll(file)
+	}
+
 	if err != nil {
 		fmt.Println("Error decoding: ", err)
 		os.Exit(1)
 	}
 	file.Close()
 
-	frameCount := len(img.Image) * loopCount
+	frameCount := uint(len(img.Image)) * loopCount
 	newFrames := make([]*image.Paletted, frameCount)
 	for i := range newFrames {
 		newFrames[i] = new(image.Paletted)
@@ -146,15 +162,15 @@ func main() {
 	gradient := newGradient(colors, true)
 	overlayColors := gradient.generate(frameCount)
 
-	framesPerThread := len(img.Image)/threads + 1
-	ch := make(chan int)
-	barrier := 0
+	framesPerThread := uint(len(img.Image))/threads + 1
+	ch := make(chan uint)
+	barrier := uint(0)
 
 	frameIndex := 0
 	normalizedFrameIndex := 0
-	for i := 0; i < threads; i++ {
-		go func(base int) {
-			processed := 0
+	for i := uint(0); i < threads; i++ {
+		go func(base uint) {
+			processed := uint(0)
 			for processed < framesPerThread {
 				if frameIndex >= len(newFrames) {
 					break
@@ -189,9 +205,12 @@ func main() {
 		newDelay[i] = img.Delay[i%len(img.Delay)]
 	}
 
-	newDisposal := make([]byte, len(newFrames))
-	for i := range newDisposal {
-		newDisposal[i] = img.Disposal[i%len(img.Disposal)]
+	var newDisposal []byte
+	if img.Disposal != nil && len(img.Disposal) != 0 {
+		newDisposal := make([]byte, len(newFrames))
+		for i := range newDisposal {
+			newDisposal[i] = img.Disposal[i%len(img.Disposal)]
+		}
 	}
 
 	img.Image = newFrames
