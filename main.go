@@ -97,8 +97,8 @@ func main() {
 	var delay uint
 	flag.UintVar(&delay, "delay", 0, "The delay between frames")
 
-	var quantization string
-	flag.StringVar(&quantization, "quantization", "mediancut", "Quantization algorithm to use")
+	var quantizer string
+	flag.StringVar(&quantizer, "quantizer", "mediancut", "quantizer algorithm to use")
 
 	flag.Parse()
 
@@ -142,7 +142,7 @@ func main() {
 			fmt.Println("Error decoding static image: ", err)
 			os.Exit(1)
 		}
-		img, err = staticTransform(staticImg, format, quantization, delay)
+		img, err = staticTransform(staticImg, format, quantizer, delay)
 	} else {
 		img, err = gif.DecodeAll(file)
 	}
