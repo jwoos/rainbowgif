@@ -142,7 +142,7 @@ func main() {
 			fmt.Println("Error decoding static image: ", err)
 			os.Exit(1)
 		}
-		img, err = staticTransform(staticImg, format, quantization, loopCount, delay)
+		img, err = staticTransform(staticImg, format, quantization, delay)
 	} else {
 		img, err = gif.DecodeAll(file)
 	}

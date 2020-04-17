@@ -7,7 +7,7 @@ import (
 	"image/gif"
 )
 
-func staticTransform(img image.Image, format string, quantizer string, frameCount uint, delay uint) (*gif.GIF, error) {
+func staticTransform(img image.Image, format string, quantizer string, delay uint) (*gif.GIF, error) {
 	transform := img.ColorModel() != color.RGBAModel
 
 	bounds := img.Bounds()
@@ -48,14 +48,9 @@ func staticTransform(img image.Image, format string, quantizer string, frameCoun
 	pi.Pix = pix
 
 	gifImg := gif.GIF{
-		Image: make([]*image.Paletted, frameCount),
-		Delay: make([]int, frameCount),
+		Image: []*image.Paletted{pi},
+		Delay: []int{int(delay)},
 		LoopCount: 0,
-	}
-
-	for i := uint(0); i < frameCount; i++ {
-		gifImg.Image[i] = pi
-		gifImg.Delay[i] = int(delay)
 	}
 
 	return &gifImg, nil
