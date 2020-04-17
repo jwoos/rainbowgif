@@ -201,8 +201,13 @@ func main() {
 	}
 
 	newDelay := make([]int, len(newFrames))
+	// overwrite the delay if one is provided, otherwise use default
 	for i := range newDelay {
-		newDelay[i] = img.Delay[i%len(img.Delay)]
+		if delay == 0 {
+			newDelay[i] = img.Delay[i%len(img.Delay)]
+		} else {
+			newDelay[i] = int(delay)
+		}
 	}
 
 	var newDisposal []byte
