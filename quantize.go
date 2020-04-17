@@ -8,17 +8,17 @@ import (
 	"github.com/dhconnelly/rtreego"
 )
 
-type Quantization struct {
+type Quantizer struct {
 	count int
 }
 
-func newQuantization(count int) Quantization {
-	return Quantization{
+func newQuantizer(count int) Quantizer {
+	return Quantizer{
 		count: count,
 	}
 }
 
-func (q Quantization) quantize(algo string, colors []color.RGBA) ([]*color.RGBA, []int, error) {
+func (q Quantizer) quantize(algo string, colors []color.RGBA) ([]*color.RGBA, []int, error) {
 	var palette []*color.RGBA
 	var mapping []int
 
@@ -34,7 +34,7 @@ func (q Quantization) quantize(algo string, colors []color.RGBA) ([]*color.RGBA,
 	case "kmeans":
 		palette, mapping = q.kmeans(colors)
 	default:
-		return nil, nil, errors.New("Invalid quantization algorithm")
+		return nil, nil, errors.New("Invalid quantizer")
 	}
 
 	return palette, mapping, nil
@@ -43,7 +43,7 @@ func (q Quantization) quantize(algo string, colors []color.RGBA) ([]*color.RGBA,
 /* helper method to just transform input to the appropriate output.
  * Generates a proper palette from any given input.
  */
-func (q Quantization) identity(colors []color.RGBA) ([]*color.RGBA, []int) {
+func (q Quantizer) identity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	palette := make(map[color.RGBA]struct {
 		addr  *color.RGBA
 		index int
@@ -71,7 +71,7 @@ func (q Quantization) identity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	return paletteSlice, indexMapping
 }
 
-func (q Quantization) scalar(colors []color.RGBA) ([]*color.RGBA, []int) {
+func (q Quantizer) scalar(colors []color.RGBA) ([]*color.RGBA, []int) {
 	if len(colors) < q.count {
 		return q.identity(colors)
 	}
@@ -119,7 +119,7 @@ func (p *Point) Bounds() *rtreego.Rect {
 	return p.location.ToRect(0.001)
 }
 
-func (q Quantization) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
+func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	if len(colors) < q.count {
 		return q.identity(colors)
 	}
@@ -208,14 +208,14 @@ func (q Quantization) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	return paletteSlice, indexMapping
 }
 
-func (q Quantization) medianCut([]color.RGBA) ([]*color.RGBA, []int) {
+func (q Quantizer) medianCut([]color.RGBA) ([]*color.RGBA, []int) {
 	panic("Not implemented")
 }
 
-func (q Quantization) octree([]color.RGBA) ([]*color.RGBA, []int) {
+func (q Quantizer) octree([]color.RGBA) ([]*color.RGBA, []int) {
 	panic("Not implemented")
 }
 
-func (q Quantization) kmeans([]color.RGBA) ([]*color.RGBA, []int) {
+func (q Quantizer) kmeans([]color.RGBA) ([]*color.RGBA, []int) {
 	panic("Not implemented")
 }

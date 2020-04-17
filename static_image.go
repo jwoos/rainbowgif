@@ -25,7 +25,7 @@ func staticTransform(img image.Image, format string, quantizer string, delay uin
 		}
 	}
 
-	q := newQuantization(256)
+	q := newQuantizer(256)
 	newColorsPtr, indexMap, err := q.quantize(quantizer, colors)
 	if err != nil {
 		return nil, err
