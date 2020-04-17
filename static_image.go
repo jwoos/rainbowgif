@@ -12,15 +12,15 @@ func staticTransform(img image.Image, format string, quantizer string, delay uin
 
 	bounds := img.Bounds()
 
-	colors := make([]color.RGBA, (bounds.Max.Y - bounds.Min.Y) * (bounds.Max.X - bounds.Min.X))
+	colors := make([]color.RGBA, (bounds.Max.Y-bounds.Min.Y)*(bounds.Max.X-bounds.Min.X))
 	stride := bounds.Max.X - bounds.Min.X
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			c := img.At(x, y)
 			if transform {
-				colors[y * stride + x] = color.RGBAModel.Convert(c).(color.RGBA)
+				colors[y*stride+x] = color.RGBAModel.Convert(c).(color.RGBA)
 			} else {
-				colors[y * stride + x] = c.(color.RGBA)
+				colors[y*stride+x] = c.(color.RGBA)
 			}
 		}
 	}
@@ -48,8 +48,8 @@ func staticTransform(img image.Image, format string, quantizer string, delay uin
 	pi.Pix = pix
 
 	gifImg := gif.GIF{
-		Image: []*image.Paletted{pi},
-		Delay: []int{int(delay)},
+		Image:     []*image.Paletted{pi},
+		Delay:     []int{int(delay)},
 		LoopCount: 0,
 	}
 

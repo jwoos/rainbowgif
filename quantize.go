@@ -44,8 +44,8 @@ func (q Quantization) quantize(algo string, colors []color.RGBA) ([]*color.RGBA,
  * Generates a proper palette from any given input.
  */
 func (q Quantization) identity(colors []color.RGBA) ([]*color.RGBA, []int) {
-	palette := make(map[color.RGBA]struct{
-		addr *color.RGBA
+	palette := make(map[color.RGBA]struct {
+		addr  *color.RGBA
 		index int
 	})
 	paletteSlice := make([]*color.RGBA, len(colors))
@@ -54,11 +54,11 @@ func (q Quantization) identity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	for i, c := range colors {
 		colorInfo, okay := palette[c]
 		if !okay {
-			colorInfo = struct{
-				addr *color.RGBA
+			colorInfo = struct {
+				addr  *color.RGBA
 				index int
 			}{
-				addr: &c,
+				addr:  &c,
 				index: len(paletteSlice),
 			}
 			palette[c] = colorInfo
@@ -76,8 +76,8 @@ func (q Quantization) scalar(colors []color.RGBA) ([]*color.RGBA, []int) {
 		return q.identity(colors)
 	}
 
-	palette := make(map[color.RGBA]struct{
-		addr *color.RGBA
+	palette := make(map[color.RGBA]struct {
+		addr  *color.RGBA
 		index int
 	})
 	paletteSlice := make([]*color.RGBA, 0)
@@ -93,11 +93,11 @@ func (q Quantization) scalar(colors []color.RGBA) ([]*color.RGBA, []int) {
 
 		colorInfo, okay := palette[newColor]
 		if !okay {
-			colorInfo = struct{
-				addr *color.RGBA
+			colorInfo = struct {
+				addr  *color.RGBA
 				index int
 			}{
-				addr: &newColor,
+				addr:  &newColor,
 				index: len(paletteSlice),
 			}
 			palette[newColor] = colorInfo
@@ -124,8 +124,8 @@ func (q Quantization) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		return q.identity(colors)
 	}
 
-	palette := make(map[color.RGBA]struct{
-		addr *color.RGBA
+	palette := make(map[color.RGBA]struct {
+		addr  *color.RGBA
 		index int
 		count int
 	})
@@ -135,12 +135,12 @@ func (q Quantization) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		if okay {
 			v.count++
 		} else {
-			palette[c] = struct{
-				addr *color.RGBA
+			palette[c] = struct {
+				addr  *color.RGBA
 				index int
 				count int
 			}{
-				addr: &c,
+				addr:  &c,
 				index: -1,
 				count: 1,
 			}
@@ -152,13 +152,13 @@ func (q Quantization) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		return q.identity(colors)
 	}
 
-	sorted := make([]struct{
+	sorted := make([]struct {
 		color *color.RGBA
 		count int
 	}, len(palette))
 	index := 0
 	for k, v := range palette {
-		sorted[index] = struct{
+		sorted[index] = struct {
 			color *color.RGBA
 			count int
 		}{color: &k, count: v.count}
