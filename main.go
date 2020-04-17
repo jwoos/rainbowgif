@@ -16,15 +16,9 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-/* frame is just `*image.Paletted`
- * `color.Palette` is just `[]color.Color`
- * `color.Color` is an interface implementing `RGBA()`
- */
 func prepareFrame(src *image.Paletted, dst *image.Paletted, overlayColor colorful.Color) {
 	dst.Pix = src.Pix
 	dst.Stride = src.Stride
-	dst.Rect = src.Rect
-	dst.Palette = make([]color.Color, len(src.Palette))
 
 	for pixelIndex, pixel := range src.Palette {
 		_, _, _, alpha := pixel.RGBA()
@@ -156,23 +150,25 @@ func main() {
 	frameCount := uint(len(img.Image)) * loopCount
 	newFrames := make([]*image.Paletted, frameCount)
 	for i := range newFrames {
-		newFrames[i] = new(image.Paletted)
+		originalFrame := img.Image[i%len(img.Image)]
+		newPalette := make([]color.Color, len(originalFrame.Palette))
+		copy(newPalette, originalFrame.Palette)
+		newFrames[i] = image.NewPaletted(originalFrame.Bounds(), newPalette)
 	}
 
 	gradient := newGradient(colors, true)
 	overlayColors := gradient.generate(frameCount)
 
-	framesPerThread := uint(len(img.Image))/threads + 1
+	framesPerThread := frameCount/threads + 1
 	ch := make(chan uint)
 	barrier := uint(0)
 
-	frameIndex := 0
-	normalizedFrameIndex := 0
-	for i := uint(0); i < threads; i++ {
-		go func(base uint) {
-			processed := uint(0)
-			for processed < framesPerThread {
-				if frameIndex >= len(newFrames) {
+	for i := 0; i < int(threads); i++ {
+		go func(base int, normalizedFrameIndex int) {
+			for processed := 0; processed < int(framesPerThread); processed++ {
+				frameIndex := base*int(framesPerThread) + processed
+
+				if frameIndex >= int(frameCount) {
 					break
 				}
 
@@ -186,13 +182,12 @@ func main() {
 					newFrames[frameIndex],
 					overlayColors[frameIndex],
 				)
-				frameIndex++
 				normalizedFrameIndex++
 			}
 
 			// thread is done
 			ch <- 1
-		}(i)
+		}(i, i*int(framesPerThread)%len(img.Image))
 	}
 
 	// wait for all threads to synchronize
@@ -210,12 +205,9 @@ func main() {
 		}
 	}
 
-	var newDisposal []byte
-	if img.Disposal != nil && len(img.Disposal) != 0 {
-		newDisposal := make([]byte, len(newFrames))
-		for i := range newDisposal {
-			newDisposal[i] = img.Disposal[i%len(img.Disposal)]
-		}
+	newDisposal := make([]byte, len(newFrames))
+	for i := range newDelay {
+		newDisposal[i] = img.Disposal[i%len(img.Disposal)]
 	}
 
 	img.Image = newFrames
