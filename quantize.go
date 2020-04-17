@@ -113,7 +113,7 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		return q.identity(colors)
 	}
 
-	palette := make(map[color.RGBA]struct {
+	palette := make(map[color.RGBA]struct{
 		index int
 		count int
 	})
@@ -122,8 +122,9 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		v, okay := palette[c]
 		if okay {
 			v.count++
+			palette[c] = v
 		} else {
-			palette[c] = struct {
+			palette[c] = struct{
 				index int
 				count int
 			}{
@@ -139,15 +140,15 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	}
 
 	sorted := make([]struct {
-		color *color.RGBA
+		color color.RGBA
 		count int
 	}, len(palette))
 	index := 0
 	for k, v := range palette {
 		sorted[index] = struct {
-			color *color.RGBA
+			color color.RGBA
 			count int
-		}{color: &k, count: v.count}
+		}{color: k, count: v.count}
 		index++
 	}
 
@@ -162,19 +163,21 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 
 	tempPalette := make(color.Palette, len(sorted))
 	for i, c := range sorted {
-		tempPalette[i] = *c.color
+		tempPalette[i] = c.color
 	}
 
 	paletteSlice := make([]*color.RGBA, 0)
 	indexMapping := make([]int, len(colors))
 
+	// TODO toss this into a goroutine - `Convert` is essentially a linear search
 	for i, originalColor := range colors {
 		converted := tempPalette.Convert(originalColor).(color.RGBA)
 
 		colorInfo := palette[converted]
 		if colorInfo.index == -1 {
 			colorInfo.index = len(paletteSlice)
-			paletteSlice = append(paletteSlice, &converted)
+			paletteSlice = append(paletteSlice, &color.RGBA{R: converted.R, G: converted.G, B: converted.B, A: originalColor.A})
+			palette[converted] = colorInfo
 		}
 
 		indexMapping[i] = colorInfo.index
