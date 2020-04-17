@@ -86,7 +86,7 @@ func (q Quantizer) scalar(colors []color.RGBA) ([]*color.RGBA, []int) {
 			R: c.R & (0b11100000),
 			G: c.G & (0b11100000),
 			B: c.B & (0b11000000),
-			A: 255,
+			A: c.A,
 		}
 
 		colorInfo, okay := palette[*newColor]
