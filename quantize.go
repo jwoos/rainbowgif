@@ -4,8 +4,6 @@ import (
 	"errors"
 	"image/color"
 	"sort"
-
-	"github.com/dhconnelly/rtreego"
 )
 
 type Quantizer struct {
@@ -48,7 +46,7 @@ func (q Quantizer) identity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		addr  *color.RGBA
 		index int
 	})
-	paletteSlice := make([]*color.RGBA, len(colors))
+	paletteSlice := make([]*color.RGBA, 0)
 	indexMapping := make([]int, len(colors))
 
 	for i, c := range colors {
@@ -84,23 +82,23 @@ func (q Quantizer) scalar(colors []color.RGBA) ([]*color.RGBA, []int) {
 	indexMapping := make([]int, len(colors))
 	for i, c := range colors {
 		// pack R into 3 bits, G into 3 bits, and B into 2 bits
-		newColor := color.RGBA{
+		newColor := &color.RGBA{
 			R: c.R & (0b11100000),
-			G: c.G & (0b00011100),
-			B: c.B & (0b00000011),
-			A: 1,
+			G: c.G & (0b11100000),
+			B: c.B & (0b11000000),
+			A: 255,
 		}
 
-		colorInfo, okay := palette[newColor]
+		colorInfo, okay := palette[*newColor]
 		if !okay {
 			colorInfo = struct {
 				addr  *color.RGBA
 				index int
 			}{
-				addr:  &newColor,
+				addr:  newColor,
 				index: len(paletteSlice),
 			}
-			palette[newColor] = colorInfo
+			palette[*newColor] = colorInfo
 			paletteSlice = append(paletteSlice, colorInfo.addr)
 		}
 
@@ -110,22 +108,12 @@ func (q Quantizer) scalar(colors []color.RGBA) ([]*color.RGBA, []int) {
 	return paletteSlice, indexMapping
 }
 
-// for R-tree
-type Point struct {
-	location rtreego.Point
-}
-
-func (p *Point) Bounds() *rtreego.Rect {
-	return p.location.ToRect(0.001)
-}
-
 func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	if len(colors) < q.count {
 		return q.identity(colors)
 	}
 
 	palette := make(map[color.RGBA]struct {
-		addr  *color.RGBA
 		index int
 		count int
 	})
@@ -136,11 +124,9 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 			v.count++
 		} else {
 			palette[c] = struct {
-				addr  *color.RGBA
 				index int
 				count int
 			}{
-				addr:  &c,
 				index: -1,
 				count: 1,
 			}
@@ -148,7 +134,7 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	}
 
 	// no need to do any extra work, we have all the colors we need
-	if len(palette) >= q.count {
+	if len(palette) <= q.count {
 		return q.identity(colors)
 	}
 
@@ -174,32 +160,21 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		sorted = sorted[:q.count]
 	}
 
-	// TODO - we don't need an R-tree the Go std library has a Euclidean search function on Palette
-	// just use that wrapped in goroutines :(
-	rt := rtreego.NewTree(3, 10, 30)
-
-	for _, c := range sorted {
-		pt := Point{location: []float64{float64(c.color.R), float64(c.color.G), float64(c.color.B)}}
-		rt.Insert(&pt)
+	tempPalette := make(color.Palette, len(sorted))
+	for i, c := range sorted {
+		tempPalette[i] = *c.color
 	}
 
 	paletteSlice := make([]*color.RGBA, 0)
 	indexMapping := make([]int, len(colors))
 
 	for i, originalColor := range colors {
-		pt := []float64{float64(originalColor.R), float64(originalColor.G), float64(originalColor.B)}
-		nearestPt := rt.NearestNeighbor(pt).Bounds()
-		tempColor := color.RGBA{
-			R: uint8(nearestPt.PointCoord(0)),
-			G: uint8(nearestPt.PointCoord(1)),
-			B: uint8(nearestPt.PointCoord(2)),
-			A: 1,
-		}
+		converted := tempPalette.Convert(originalColor).(color.RGBA)
 
-		colorInfo := palette[tempColor]
+		colorInfo := palette[converted]
 		if colorInfo.index == -1 {
 			colorInfo.index = len(paletteSlice)
-			paletteSlice = append(paletteSlice, colorInfo.addr)
+			paletteSlice = append(paletteSlice, &converted)
 		}
 
 		indexMapping[i] = colorInfo.index
