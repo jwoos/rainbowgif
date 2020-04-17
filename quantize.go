@@ -113,7 +113,7 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 		return q.identity(colors)
 	}
 
-	palette := make(map[color.RGBA]struct{
+	palette := make(map[color.RGBA]struct {
 		index int
 		count int
 	})
@@ -124,7 +124,7 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 			v.count++
 			palette[c] = v
 		} else {
-			palette[c] = struct{
+			palette[c] = struct {
 				index int
 				count int
 			}{

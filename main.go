@@ -143,25 +143,6 @@ func main() {
 			os.Exit(1)
 		}
 		img, err = staticTransform(staticImg, format, quantizer, delay)
-
-/*
- *        file, err = os.OpenFile(output, os.O_RDWR|os.O_CREATE, 0644)
- *        if err != nil {
- *            fmt.Println("Error opening file: ", err)
- *            os.Exit(1)
- *        }
- *
- *        img.Config.ColorModel = nil
- *        img.BackgroundIndex = 0
- *
- *        err = gif.EncodeAll(file, img)
- *        if err != nil {
- *            fmt.Println("Error encoding image: ", err)
- *            os.Exit(1)
- *        }
- *        file.Close()
- *        return
- */
 	} else {
 		img, err = gif.DecodeAll(file)
 	}
