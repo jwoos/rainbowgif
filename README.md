@@ -1,6 +1,6 @@
 # Rainbow GIF
 ## What?
-This is a program to read in GIFs and overlay colors over the frames to create a rainbow effect.
+This is a program to read in images and overlay colors over the frames to create a rainbow effect. The tool currently supports GIFs as well as JPGs and PNGs.
 
 Before:
 ![Before](images/fidget_spinner.gif)
@@ -14,7 +14,12 @@ Clone it and assuming you have Go a version greater than or equal to 1.11, you s
 ### Options
 - `threads`: The number of goroutines to use when processing the GIF
 - `gradient`: The list of colors to use as the overlay. When omitted, it will default to ROYGBV.
-- `loop_count`: The number of times to loop over the GIF. The output GIF will be `loop_count` times longer. Defaults to 1.
+- `loop_count`: Defaults to 1.
+  - For GIF: The number of times to loop over the GIF. The output GIF will be `loop_count` times longer.
+  - For static images (JPG, PNG): The number of frames to create for the resulting GIF. The output will be `loop_count` frames long.
+- `static`: Indicate whether the input is a static image. Defaults to false. Hopefully this can be removed in the future.
+- `quantizer`: Only used with `static` on. This will choose which quantizer to use.
+- `delay`: This sets the delay between frames in 100ths of a second
 
 ## Technical Detail
 This makes use of https://github.com/lucasb-eyer/go-colorful - this library saved me a lot of travel since the standard color library doesn't cover all this.
