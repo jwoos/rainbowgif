@@ -206,7 +206,7 @@ func main() {
 	}
 
 	newDisposal := make([]byte, len(newFrames))
-	if (len(img.Disposal) > 0){
+	if len(img.Disposal) > 0 {
 		for i := range newDelay {
 			newDisposal[i] = img.Disposal[i%len(img.Disposal)]
 		}

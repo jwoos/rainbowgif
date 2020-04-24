@@ -229,12 +229,10 @@ func (q Quantizer) medianCut(colors []color.RGBA) ([]*color.RGBA, []int) {
 		mappedColor := mappedColors[i]
 		originalIndices := indices[*colorPtr]
 
-
 		for _, x := range originalIndices {
 			indexMapping[x] = temp[mappedColor]
 		}
 	}
-
 
 	return palette, indexMapping
 }
@@ -324,15 +322,14 @@ func (q Quantizer) medianCutSplit(bucket []*color.RGBA, depth int) ([]*color.RGB
 		})
 	}
 
-	aPalette, aMappedcolor := q.medianCutSplit(bucket[:len(bucket) / 2 + 1], depth - 1)
-	bPalette, bMappedColor := q.medianCutSplit(bucket[len(bucket) / 2 + 1:], depth - 1)
+	aPalette, aMappedcolor := q.medianCutSplit(bucket[:len(bucket)/2+1], depth-1)
+	bPalette, bMappedColor := q.medianCutSplit(bucket[len(bucket)/2+1:], depth-1)
 
 	palette := append(aPalette, bPalette...)
 	mappedColor := append(aMappedcolor, bMappedColor...)
 
 	return palette, mappedColor
 }
-
 
 func (q Quantizer) octree([]color.RGBA) ([]*color.RGBA, []int) {
 	panic("Not implemented")
