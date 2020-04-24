@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"image/color"
+	"math"
 	"sort"
 )
 
@@ -186,9 +187,152 @@ func (q Quantizer) populosity(colors []color.RGBA) ([]*color.RGBA, []int) {
 	return paletteSlice, indexMapping
 }
 
-func (q Quantizer) medianCut([]color.RGBA) ([]*color.RGBA, []int) {
-	panic("Not implemented")
+func (q Quantizer) medianCut(colors []color.RGBA) ([]*color.RGBA, []int) {
+	if len(colors) < q.count {
+		return q.identity(colors)
+	}
+
+	// for use later on
+	indices := make(map[color.RGBA][]int)
+	uniqueColors := make([]*color.RGBA, 0)
+
+	for i, c := range colors {
+		_, okay := indices[c]
+		if okay {
+			indices[c] = append(indices[c], i)
+		} else {
+			indices[c] = []int{i}
+			uniqueColors = append(uniqueColors, &color.RGBA{R: c.R, G: c.G, B: c.B, A: c.A})
+		}
+	}
+
+	depth := int(math.Round(math.Log2(float64(q.count))))
+	actualCount := int(math.Pow(2, float64(depth)))
+	palette := make([]*color.RGBA, actualCount)
+	indexMapping := make([]int, len(colors))
+
+	uniqueColors, mappedColors := q.medianCutSplit(uniqueColors, depth)
+
+	temp := make(map[*color.RGBA]int)
+	index := 0
+	for _, c := range mappedColors {
+		_, okay := temp[c]
+		if !okay {
+			palette[index] = c
+			temp[c] = index
+			index++
+		}
+	}
+
+	for i := range uniqueColors {
+		colorPtr := uniqueColors[i]
+		mappedColor := mappedColors[i]
+		originalIndices := indices[*colorPtr]
+
+
+		for _, x := range originalIndices {
+			indexMapping[x] = temp[mappedColor]
+		}
+	}
+
+
+	return palette, indexMapping
 }
+
+func (q Quantizer) medianCutSplit(bucket []*color.RGBA, depth int) ([]*color.RGBA, []*color.RGBA) {
+	if len(bucket) == 0 {
+		return nil, nil
+	}
+
+	if depth == 0 {
+		// average all the pixels in the bucket and return
+		sum := []uint{0, 0, 0, 1}
+		for _, c := range bucket {
+			sum[0] += uint(c.R)
+			sum[1] += uint(c.G)
+			sum[2] += uint(c.B)
+			sum[3] *= uint(c.A)
+		}
+
+		if sum[3] != 0 {
+			sum[3] = 255
+		}
+
+		avg := &color.RGBA{
+			R: uint8(sum[0] / uint(len(bucket))),
+			G: uint8(sum[1] / uint(len(bucket))),
+			B: uint8(sum[2] / uint(len(bucket))),
+			A: uint8(sum[3]),
+		}
+
+		palette := make([]*color.RGBA, len(bucket))
+		for i := range palette {
+			palette[i] = avg
+		}
+
+		return bucket, palette
+	}
+
+	r := []int{-1, 0}
+	g := []int{-1, 0}
+	b := []int{-1, 0}
+
+	for _, c := range bucket {
+		cR := int(c.R)
+		if r[0] == -1 || cR < r[0] {
+			r[0] = cR
+		}
+		if cR > r[1] {
+			r[1] = cR
+		}
+
+		cG := int(c.G)
+		if g[0] == -1 || cG < g[0] {
+			g[0] = cG
+		}
+		if cG > g[1] {
+			g[1] = cG
+		}
+
+		cB := int(c.B)
+		if b[0] == -1 || cB < b[0] {
+			b[0] = cB
+		}
+		if cB > b[1] {
+			b[1] = cB
+		}
+	}
+
+	rDiff := r[1] - r[0]
+	gDiff := g[1] - g[0]
+	bDiff := b[1] - b[0]
+
+	if rDiff > gDiff && rDiff > bDiff {
+		// red
+		sort.Slice(bucket, func(i int, j int) bool {
+			return bucket[i].R < bucket[j].R
+		})
+	} else if gDiff > bDiff {
+		// green
+		sort.Slice(bucket, func(i int, j int) bool {
+			return bucket[i].G < bucket[j].G
+		})
+	} else {
+		// blue
+		sort.Slice(bucket, func(i int, j int) bool {
+			return bucket[i].B < bucket[j].B
+		})
+	}
+
+	aPalette, aMappedcolor := q.medianCutSplit(bucket[:len(bucket) / 2 + 1], depth - 1)
+	bPalette, bMappedColor := q.medianCutSplit(bucket[len(bucket) / 2 + 1:], depth - 1)
+
+	palette := append(aPalette, bPalette...)
+	mappedColor := append(aMappedcolor, bMappedColor...)
+
+	return palette, mappedColor
+}
+
 
 func (q Quantizer) octree([]color.RGBA) ([]*color.RGBA, []int) {
 	panic("Not implemented")

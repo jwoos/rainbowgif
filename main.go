@@ -92,7 +92,7 @@ func main() {
 	flag.UintVar(&delay, "delay", 0, "The delay between frames")
 
 	var quantizer string
-	flag.StringVar(&quantizer, "quantizer", "mediancut", "quantizer algorithm to use")
+	flag.StringVar(&quantizer, "quantizer", "populosity", "quantizer algorithm to use")
 
 	flag.Parse()
 
@@ -206,8 +206,10 @@ func main() {
 	}
 
 	newDisposal := make([]byte, len(newFrames))
-	for i := range newDelay {
-		newDisposal[i] = img.Disposal[i%len(img.Disposal)]
+	if (len(img.Disposal) > 0){
+		for i := range newDelay {
+			newDisposal[i] = img.Disposal[i%len(img.Disposal)]
+		}
 	}
 
 	img.Image = newFrames
