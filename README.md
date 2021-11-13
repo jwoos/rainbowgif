@@ -10,6 +10,9 @@ This is a program to read in images and overlay colors over the frames to create
 - first one was created with `rainbowgif images/fidget_spinner.gif images/fidget_spinner_rainbow.gif`.
 - second one was created with `rainbowgif --static --threads=1 --loop_count=18 --quantizer=populosity images/chefs_kiss.png images/chefs_kiss.gif`
 
+## OLD
+I moved all of the existing code to `go` directory. The new code will try to keep all the functionalities of the old one.
+
 ## Usage
 Clone it and assuming you have Go a version greater than or equal to 1.3, you should just be able to do a `go mod download` to download all the modules and then `go build`. This should output a binary in the directory. Run it with by doing `./rainbowgif <input> <output>`.
 
