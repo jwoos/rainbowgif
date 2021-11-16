@@ -4,8 +4,8 @@ This is a program to read in images and overlay colors over the frames to create
 
 | Before | After  |
 | ------ | ------ |
-| ![Before](images/fidget_spinner.gif) | ![After](images/fidget_spinner_rainbow.gif) |
-| ![Before](images/chefs_kiss.png) | ![After](images/chefs_kiss.gif) |
+| ![Before](../images/fidget_spinner.gif) | ![After](../images/fidget_spinner_rainbow.gif) |
+| ![Before](../images/chefs_kiss.png) | ![After](../images/chefs_kiss.gif) |
 
 - first one was created with `rainbowgif images/fidget_spinner.gif images/fidget_spinner_rainbow.gif`.
 - second one was created with `rainbowgif --static --threads=1 --loop_count=18 --quantizer=populosity images/chefs_kiss.png images/chefs_kiss.gif`
