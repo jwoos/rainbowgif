@@ -12,3 +12,8 @@
 *.out
 
 rainbowgif
+
+
+# Added by cargo
+
+/target
