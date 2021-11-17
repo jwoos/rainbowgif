@@ -25,8 +25,8 @@ fn main() -> Result<(), String> {
                 .takes_value(true)
                 .use_delimiter(true)
                 .default_value("FF0000,007F00,FFFF00,00FF00,0000FF,8B00FF")
-                .help("The colors to use in the gradient")
-            )
+                .help("The colors to use in the gradient"),
+        )
         .get_matches();
 
     let color_strings = matches.values_of("colors").unwrap();
@@ -35,10 +35,10 @@ fn main() -> Result<(), String> {
         if color_string.len() != 6 {
             return Err(format!("Invalid color format {}", &color_string));
         }
-        
+
         match color::hex_to_color(&color_string) {
             Ok(c) => color_vec.push(c),
-            Err(e) => return Err(format!("{}: {}", e.to_string(), color_string))
+            Err(e) => return Err(format!("{}: {}", e.to_string(), color_string)),
         }
     }
 
