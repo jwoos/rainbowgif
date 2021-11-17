@@ -1,6 +1,15 @@
 use palette::rgb::LinSrgba;
-use palette::{white_point, Gradient, Lch};
+use palette::{white_point, Gradient, Lch, FromColor};
 use std::vec;
+use std::num;
+
+pub fn hex_to_color(color_string: &str) -> Result<Lch<white_point::D65, f64>, std::num::ParseIntError> {
+    let r = u64::from_str_radix(&color_string[0..2], 16)? as f64;
+    let g = u64::from_str_radix(&color_string[2..4], 16)? as f64;
+    let b = u64::from_str_radix(&color_string[4..6], 16)? as f64;
+
+    return Ok(Lch::from_color(LinSrgba::new(r, g, b, 255.0)));
+}
 
 pub struct GradientDescriptor {
     colors: vec::Vec<Lch<white_point::D65, f64>>,
