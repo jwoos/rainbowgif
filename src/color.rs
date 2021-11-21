@@ -13,6 +13,16 @@ pub fn hex_to_color(
     return Ok(Lch::from_color(LinSrgba::new(r, g, b, 255.0)));
 }
 
+pub fn blend_color(
+    bottom: Lch<white_point::D65, f64>,
+    top: Lch<white_point::D65, f64>,
+) -> Lch<white_point::D65, f64> {
+    let (_, topC, topH) = top.into_components();
+    let (bottomL, _, _) = bottom.into_components();
+
+    return Lch::from_components((bottomL, topC, topH));
+}
+
 pub struct GradientDescriptor {
     colors: vec::Vec<Lch<white_point::D65, f64>>,
     positions: vec::Vec<f64>,
