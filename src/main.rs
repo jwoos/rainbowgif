@@ -1,4 +1,5 @@
 use std::borrow;
+use std::error::Error;
 use std::fs::File;
 use std::vec;
 
@@ -10,7 +11,7 @@ use palette::FromColor;
 
 mod color;
 
-fn main() -> Result<(), String> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = App::new("rainbowgif")
         .version("0.1.0")
         .about("Rainbow GIF")
@@ -40,41 +41,33 @@ fn main() -> Result<(), String> {
     let mut color_vec = vec::Vec::new();
     for color_string in color_strings {
         if color_string.len() != 6 {
-            return Err(format!("Invalid color format {}", &color_string));
+            return Err(format!("Invalid color format {}", &color_string).into());
         }
 
         match color::hex_to_color(&color_string) {
             Ok(c) => color_vec.push(c),
-            Err(e) => return Err(format!("{}: {}", e.to_string(), color_string)),
+            Err(e) => return Err(format!("{}: {}", e.to_string(), color_string).into()),
         }
     }
 
     let src_image_path = matches.value_of("INPUT_FILE").unwrap();
     let src_image = match File::open(src_image_path) {
         Ok(f) => f,
-        Err(e) => return Err(format!("{}: {}", e.to_string(), src_image_path)),
+        Err(e) => return Err(format!("{}: {}", e.to_string(), src_image_path).into()),
     };
 
     let mut decoder_options = gif::DecodeOptions::new();
     decoder_options.set_color_output(gif::ColorOutput::Indexed);
-    let mut decoder = decoder_options
-        .read_info(src_image)
-        .map_err(|e| format!("Unable to open decoder: {}", e.to_string()))?;
+    let mut decoder = decoder_options.read_info(src_image)?;
     let mut screen = gif_dispose::Screen::new_decoder(&decoder);
 
     let dest_image_path = matches.value_of("OUTPUT_FILE").unwrap();
-    let mut dest_image = File::create(dest_image_path).map_err(|e| e.to_string())?;
-    let mut encoder = gif::Encoder::new(&mut dest_image, decoder.width(), decoder.height(), &[])
-        .map_err(|e| format!("Unable to open encoder: {}", e.to_string()))?;
+    let mut dest_image = File::create(dest_image_path)?;
+    let mut encoder = gif::Encoder::new(&mut dest_image, decoder.width(), decoder.height(), &[])?;
     encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
-    while let Some(frame) = decoder
-        .read_next_frame()
-        .map_err(|e| format!("Unable to decode: {}", e.to_string()))?
-    {
-        screen
-            .blit_frame(&frame)
-            .map_err(|e| format!("Unable to blit: {}", e.to_string()))?;
+    while let Some(frame) = decoder.read_next_frame()? {
+        screen.blit_frame(&frame)?;
 
         let width = screen.pixels.width();
         let height = screen.pixels.height();
@@ -114,9 +107,7 @@ fn main() -> Result<(), String> {
         new_frame.interlaced = frame.interlaced;
         new_frame.needs_user_input = frame.needs_user_input;
 
-        encoder
-            .write_frame(&new_frame)
-            .map_err(|e| format!("Unable to encode: {}", e.to_string()))?;
+        encoder.write_frame(&new_frame)?;
     }
 
     return Ok(());
