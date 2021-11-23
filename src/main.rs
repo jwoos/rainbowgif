@@ -61,23 +61,49 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut decoder = decoder_options.read_info(src_image)?;
     let mut screen = gif_dispose::Screen::new_decoder(&decoder);
 
+    // decode all the frames into a vec
+    let mut frames = vec::Vec::new();
+    while let Some(frame) = decoder.read_next_frame()? {
+        screen.blit_frame(&frame)?;
+        frames.push((frame.clone(), screen.pixels.clone()));
+    }
+
     let dest_image_path = matches.value_of("OUTPUT_FILE").unwrap();
     let mut dest_image = File::create(dest_image_path)?;
     let mut encoder = gif::Encoder::new(&mut dest_image, decoder.width(), decoder.height(), &[])?;
     encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
-    while let Some(frame) = decoder.read_next_frame()? {
-        screen.blit_frame(&frame)?;
+    let gradient_desc = color::GradientDescriptor::new(vec![
+        palette::Lch::from_color(palette::Srgba::new(1., 0., 0., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(0., 1., 0., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
+    ]);
+    /* let gradient_desc = color::GradientDescriptor::new(
+    vec![
+    palette::Lch::from_color(palette::Srgba::new(1., 0., 0., 1.)),
+    palette::Lch::from_color(palette::Srgba::new(1., 127. / 255., 0., 1.)),
+    palette::Lch::from_color(palette::Srgba::new(1., 1., 0., 1.)),
+    palette::Lch::from_color(palette::Srgba::new(0., 1., 0., 1.)),
+    palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
+    palette::Lch::from_color(palette::Srgba::new(139. / 255., 0., 0., 1.)),
+    ]
+    ); */
+    let colors = gradient_desc.generate(frames.len());
+    println!("colors len {}", colors.len());
 
-        let width = screen.pixels.width();
-        let height = screen.pixels.height();
+    for (i, (frame, pixels)) in frames.into_iter().enumerate() {
+        let new_color = colors[i];
 
-        // println!("{}x{}", width, height);
+        let width = pixels.width();
+        let height = pixels.height();
 
         let mut frame_pixels = vec![];
-        for pixel in screen.pixels.pixels() {
+        for pixel in pixels.pixels() {
             let original_alpha = pixel.a;
 
+            // create LCH pixel
             let lch_pixel = palette::Lch::<palette::white_point::D65, f64>::from_color(
                 palette::rgb::Srgba::new(
                     (pixel.r as f64) / 255.,
@@ -87,14 +113,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ),
             );
 
-            // TODO blend color
+            // blend
+            let new_lch_pixel = color::blend_color(lch_pixel, new_color);
 
-            let rgba_pixel = palette::rgb::Srgba::from_color(lch_pixel);
+            // convert it to rgb
+            let rgba_pixel = palette::rgb::Srgba::from_color(new_lch_pixel);
             frame_pixels.push((rgba_pixel.color.red * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.green * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.blue * 255.) as u8);
             frame_pixels.push(original_alpha);
-            println!("{}", pixel);
         }
 
         let mut new_frame = gif::Frame::from_rgba(
