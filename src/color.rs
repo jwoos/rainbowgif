@@ -1,5 +1,4 @@
 use palette::gradient;
-use palette::rgb::{LinSrgba, Srgba};
 use palette::{white_point, FromColor, Lch, Mix};
 use std::vec;
 
@@ -23,10 +22,10 @@ pub fn blend_color(
     bottom: Lch<white_point::D65, f64>,
     top: Lch<white_point::D65, f64>,
 ) -> Lch<white_point::D65, f64> {
-    let (_, topC, topH) = top.into_components();
-    let (bottomL, _, _) = bottom.into_components();
+    let (_, top_c, top_h) = top.into_components();
+    let (bottom_l, _, _) = bottom.into_components();
 
-    return Lch::from_components((bottomL, topC, topH));
+    return Lch::from_components((bottom_l, top_c, top_h));
 }
 
 pub struct GradientDescriptor {
@@ -37,7 +36,6 @@ pub struct GradientDescriptor {
 struct GradientKeyFrame<'a> {
     color: &'a Lch<white_point::D65, f64>,
     position: f64,
-    index: usize,
 }
 
 pub enum GradientGeneratorType {
@@ -105,12 +103,10 @@ impl GradientDescriptor {
                 GradientKeyFrame {
                     color: &self.colors[lower_index],
                     position: self.positions[lower_index],
-                    index: lower_index,
                 },
                 GradientKeyFrame {
                     color: &self.colors[0],
                     position: self.positions[0],
-                    index: 0,
                 },
             );
         }
@@ -119,12 +115,10 @@ impl GradientDescriptor {
             GradientKeyFrame {
                 color: &self.colors[lower_index],
                 position: self.positions[lower_index],
-                index: lower_index,
             },
             GradientKeyFrame {
                 color: &self.colors[lower_index + 1],
                 position: self.positions[lower_index + 1],
-                index: lower_index + 1,
             },
         );
     }
@@ -138,9 +132,9 @@ mod tests {
     #[test]
     fn test_generate_discrete() {
         let grad_desc = color::GradientDescriptor::new(vec![
-            Lch::from_color(ColorType::new(0., 0., 0., 1.)),
-            Lch::from_color(ColorType::new(0.5, 0.5, 0.5, 1.)),
-            Lch::from_color(ColorType::new(1., 1., 1., 1.)),
+            Lch::from_color(color::ColorType::new(0., 0., 0., 1.)),
+            Lch::from_color(color::ColorType::new(0.5, 0.5, 0.5, 1.)),
+            Lch::from_color(color::ColorType::new(1., 1., 1., 1.)),
         ]);
 
         let colors = grad_desc.generate(12, color::GradientGeneratorType::Discrete);
@@ -154,9 +148,9 @@ mod tests {
     #[test]
     fn test_generate_continuous() {
         let grad_desc = color::GradientDescriptor::new(vec![
-            Lch::from_color(ColorType::new(0., 0., 0., 1.)),
-            Lch::from_color(ColorType::new(0.5, 0.5, 0.5, 1.)),
-            Lch::from_color(ColorType::new(1., 1., 1., 1.)),
+            Lch::from_color(color::ColorType::new(0., 0., 0., 1.)),
+            Lch::from_color(color::ColorType::new(0.5, 0.5, 0.5, 1.)),
+            Lch::from_color(color::ColorType::new(1., 1., 1., 1.)),
         ]);
 
         let colors = grad_desc.generate(12, color::GradientGeneratorType::Continuous);
