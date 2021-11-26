@@ -124,6 +124,7 @@ impl GradientDescriptor {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use palette::{FromColor, Lch};
 
