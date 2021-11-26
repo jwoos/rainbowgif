@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_name("COLOR")
                 .takes_value(true)
                 .use_delimiter(true)
-                .default_value("FF0000,007F00,FFFF00,00FF00,0000FF,8B00FF")
+                .default_value("FF0000,00FF00,0000FF")
                 .help("The colors to use in the gradient"),
         )
         .get_matches();
@@ -71,19 +71,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut encoder = gif::Encoder::new(&mut dest_image, decoder.width(), decoder.height(), &[])?;
     encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
-    let gradient_desc = color::GradientDescriptor::new(vec![
-        palette::Lch::from_color(color::ColorType::new(1., 0., 0., 1.)),
-        palette::Lch::from_color(color::ColorType::new(0., 1., 0., 1.)),
-        palette::Lch::from_color(color::ColorType::new(0., 0., 1., 1.)),
-    ]);
-    /* let gradient_desc = color::GradientDescriptor::new(vec![
-        palette::Lch::from_color(color::ColorType::new(1., 0., 0., 1.)),
-        palette::Lch::from_color(color::ColorType::new(1., 127. / 255., 0., 1.)),
-        palette::Lch::from_color(color::ColorType::new(1., 1., 0., 1.)),
-        palette::Lch::from_color(color::ColorType::new(0., 1., 0., 1.)),
-        palette::Lch::from_color(color::ColorType::new(0., 0., 1., 1.)),
-        palette::Lch::from_color(color::ColorType::new(139. / 255., 0., 0., 1.)),
-    ]); */
+    let gradient_desc = color::GradientDescriptor::new(color_vec);
     let colors = gradient_desc.generate(frames.len(), color::GradientGeneratorType::Continuous);
 
     for (i, (frame, pixels)) in frames.into_iter().enumerate() {
