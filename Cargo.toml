@@ -10,3 +10,7 @@ clap = "2.33.3"
 palette = "0.6.0"
 gif = "0.11.3"
 gif-dispose = "3.1.1"
+
+[features]
+default = []
+linear_srgb = []

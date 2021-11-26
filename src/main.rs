@@ -74,17 +74,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
     let gradient_desc = color::GradientDescriptor::new(vec![
-        palette::Lch::from_color(palette::Srgba::new(1., 0., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 1., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
+        palette::Lch::from_color(color::ColorType::new(1., 0., 0., 1.)),
+        palette::Lch::from_color(color::ColorType::new(0., 1., 0., 1.)),
+        palette::Lch::from_color(color::ColorType::new(0., 0., 1., 1.)),
     ]);
     /* let gradient_desc = color::GradientDescriptor::new(vec![
-        palette::Lch::from_color(palette::Srgba::new(1., 0., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(1., 127. / 255., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(1., 1., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 1., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(139. / 255., 0., 0., 1.)),
+        palette::Lch::from_color(color::ColorType::new(1., 0., 0., 1.)),
+        palette::Lch::from_color(color::ColorType::new(1., 127. / 255., 0., 1.)),
+        palette::Lch::from_color(color::ColorType::new(1., 1., 0., 1.)),
+        palette::Lch::from_color(color::ColorType::new(0., 1., 0., 1.)),
+        palette::Lch::from_color(color::ColorType::new(0., 0., 1., 1.)),
+        palette::Lch::from_color(color::ColorType::new(139. / 255., 0., 0., 1.)),
     ]); */
     let colors = gradient_desc.generate(frames.len(), color::GradientGeneratorType::Continuous);
 
@@ -99,20 +99,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let original_alpha = pixel.a;
 
             // create LCH pixel
-            let lch_pixel = palette::Lch::<palette::white_point::D65, f64>::from_color(
-                palette::rgb::Srgba::new(
+            let lch_pixel =
+                palette::Lch::<palette::white_point::D65, f64>::from_color(color::ColorType::new(
                     (pixel.r as f64) / 255.,
                     (pixel.g as f64) / 255.,
                     (pixel.b as f64) / 255.,
                     (pixel.a as f64) / 255.,
-                ),
-            );
+                ));
 
             // blend
             let new_lch_pixel = color::blend_color(lch_pixel, new_color);
 
             // convert it to rgb
-            let rgba_pixel = palette::rgb::Srgba::from_color(new_lch_pixel);
+            let rgba_pixel = color::ColorType::from_color(new_lch_pixel);
             frame_pixels.push((rgba_pixel.color.red * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.green * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.blue * 255.) as u8);
