@@ -1,5 +1,5 @@
 use palette::rgb::LinSrgba;
-use palette::{white_point, FromColor, Gradient, Lch};
+use palette::{white_point, FromColor, Lch, Mix};
 use std::num;
 use std::vec;
 
@@ -25,40 +25,79 @@ pub fn blend_color(
 
 pub struct GradientDescriptor {
     pub colors: vec::Vec<Lch<white_point::D65, f64>>,
+    pub positions: vec::Vec<f64>,
+}
+
+struct GradientKeyFrame<'a> {
+    color: &'a Lch<white_point::D65, f64>,
+    position: f64,
+    index: usize,
 }
 
 impl GradientDescriptor {
-    pub fn new(colors: vec::Vec<Lch<white_point::D65, f64>>) -> GradientDescriptor {
-        return GradientDescriptor { colors };
+    pub fn new(mut colors: vec::Vec<Lch<white_point::D65, f64>>) -> GradientDescriptor {
+        colors.push(colors[0].clone());
+        let rng = 0..colors.len();
+        let length = std::cmp::max(colors.len() - 1, 1);
+        return GradientDescriptor {
+            colors,
+            positions: rng.map(|i| (i as f64) / (length as f64)).collect(),
+        };
     }
 
     pub fn generate(&self, frame_count: usize) -> vec::Vec<Lch<white_point::D65, f64>> {
         let mut gen = vec::Vec::<Lch<white_point::D65, f64>>::new();
 
-        // this only counts the number of colors forward, excluding color itself and the
-        // destination
-        let frames_per_color = (frame_count + 1) / (self.colors.len() + 1);
-        println!("frames per color {}", frames_per_color);
-        for (i, color) in self.colors.iter().enumerate() {
-            let src = color;
-            let dest = if i == self.colors.len() - 1 {
-                &self.colors[0]
-            } else {
-                &self.colors[i + 1]
-            };
-            let grad_iter = Gradient::new(vec![src.clone(), dest.clone()]);
-            println!("{}", frames_per_color);
+        for i in 0..frame_count {
+            let global_position = (i as f64) / (frame_count as f64);
 
-            // generate [src, dest]
-            let colors = grad_iter.take(frames_per_color + 2).collect::<Vec<_>>();
-            // push [src, dest)
-            for j in 0..colors.len() - 1 {
-                println!("{}", j);
-                gen.push(colors[j]);
-            }
+            let (key_frame_src, key_frame_dest) = self.position_search(global_position);
+            let local_position = (global_position - key_frame_src.position)
+                / (key_frame_dest.position - key_frame_src.position);
+
+            let src = key_frame_src.color;
+            let dest = key_frame_dest.color;
+
+            gen.push(src.mix(&dest, local_position));
         }
 
         return gen;
+    }
+
+    fn position_search<'a>(
+        &'a self,
+        position: f64,
+    ) -> (GradientKeyFrame<'a>, GradientKeyFrame<'a>) {
+        let base = 1.0 / ((self.colors.len() - 1) as f64);
+        let lower_index = (position / base).floor() as usize;
+
+        if lower_index == self.colors.len() - 1 {
+            return (
+                GradientKeyFrame {
+                    color: &self.colors[lower_index],
+                    position: self.positions[lower_index],
+                    index: lower_index,
+                },
+                GradientKeyFrame {
+                    color: &self.colors[0],
+                    position: self.positions[0],
+                    index: 0,
+                },
+            );
+        }
+
+        return (
+            GradientKeyFrame {
+                color: &self.colors[lower_index],
+                position: self.positions[lower_index],
+                index: lower_index,
+            },
+            GradientKeyFrame {
+                color: &self.colors[lower_index + 1],
+                position: self.positions[lower_index + 1],
+                index: lower_index + 1,
+            },
+        );
     }
 }
 

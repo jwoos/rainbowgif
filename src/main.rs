@@ -73,25 +73,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut encoder = gif::Encoder::new(&mut dest_image, decoder.width(), decoder.height(), &[])?;
     encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
-    let gradient_desc = color::GradientDescriptor::new(vec![
-        palette::Lch::from_color(palette::Srgba::new(1., 0., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 1., 0., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
-        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
-    ]);
     /* let gradient_desc = color::GradientDescriptor::new(
     vec![
     palette::Lch::from_color(palette::Srgba::new(1., 0., 0., 1.)),
-    palette::Lch::from_color(palette::Srgba::new(1., 127. / 255., 0., 1.)),
-    palette::Lch::from_color(palette::Srgba::new(1., 1., 0., 1.)),
     palette::Lch::from_color(palette::Srgba::new(0., 1., 0., 1.)),
-    palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
-    palette::Lch::from_color(palette::Srgba::new(139. / 255., 0., 0., 1.)),
+    // palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
     ]
     ); */
+    let gradient_desc = color::GradientDescriptor::new(vec![
+        palette::Lch::from_color(palette::Srgba::new(1., 0., 0., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(1., 127. / 255., 0., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(1., 1., 0., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(0., 1., 0., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(0., 0., 1., 1.)),
+        palette::Lch::from_color(palette::Srgba::new(139. / 255., 0., 0., 1.)),
+    ]);
     let colors = gradient_desc.generate(frames.len());
-    println!("colors len {}", colors.len());
 
     for (i, (frame, pixels)) in frames.into_iter().enumerate() {
         let new_color = colors[i];
