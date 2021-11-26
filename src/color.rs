@@ -1,4 +1,5 @@
-use palette::rgb::LinSrgba;
+use palette::gradient;
+use palette::rgb::Srgba;
 use palette::{white_point, FromColor, Lch, Mix};
 use std::num;
 use std::vec;
@@ -10,7 +11,7 @@ pub fn hex_to_color(
     let g = u64::from_str_radix(&color_string[2..4], 16)? as f64;
     let b = u64::from_str_radix(&color_string[4..6], 16)? as f64;
 
-    return Ok(Lch::from_color(LinSrgba::new(r, g, b, 255.0)));
+    return Ok(Lch::from_color(Srgba::new(r, g, b, 255.0)));
 }
 
 pub fn blend_color(
@@ -34,6 +35,13 @@ struct GradientKeyFrame<'a> {
     index: usize,
 }
 
+pub enum GradientGeneratorType {
+    // where the colors are calculated by global and local position
+    Discrete,
+    // where palette generates it, taking into account all colors
+    Continuous,
+}
+
 impl GradientDescriptor {
     pub fn new(mut colors: vec::Vec<Lch<white_point::D65, f64>>) -> GradientDescriptor {
         colors.push(colors[0].clone());
@@ -45,7 +53,23 @@ impl GradientDescriptor {
         };
     }
 
-    pub fn generate(&self, frame_count: usize) -> vec::Vec<Lch<white_point::D65, f64>> {
+    pub fn generate(
+        &self,
+        frame_count: usize,
+        generator_type: GradientGeneratorType,
+    ) -> vec::Vec<Lch<white_point::D65, f64>> {
+        return match generator_type {
+            GradientGeneratorType::Continuous => self.generate_continuous(frame_count),
+            GradientGeneratorType::Discrete => self.generate_discrete(frame_count),
+        };
+    }
+
+    fn generate_continuous(&self, frame_count: usize) -> vec::Vec<Lch<white_point::D65, f64>> {
+        let grad = gradient::Gradient::new(self.colors.clone());
+        return grad.take(frame_count + 1).take(frame_count).collect();
+    }
+
+    fn generate_discrete(&self, frame_count: usize) -> vec::Vec<Lch<white_point::D65, f64>> {
         let mut gen = vec::Vec::<Lch<white_point::D65, f64>>::new();
 
         for i in 0..frame_count {
@@ -102,20 +126,36 @@ impl GradientDescriptor {
 }
 
 mod tests {
-    use palette::rgb::LinSrgba;
+    use palette::rgb::Srgba;
     use palette::{FromColor, Lch};
 
     use crate::color;
 
     #[test]
-    fn test_generate() {
+    fn test_generate_discrete() {
         let grad_desc = color::GradientDescriptor::new(vec![
-            Lch::from_color(LinSrgba::new(0., 0., 0., 1.)),
-            Lch::from_color(LinSrgba::new(0.5, 0.5, 0.5, 1.)),
-            Lch::from_color(LinSrgba::new(1., 1., 1., 1.)),
+            Lch::from_color(Srgba::new(0., 0., 0., 1.)),
+            Lch::from_color(Srgba::new(0.5, 0.5, 0.5, 1.)),
+            Lch::from_color(Srgba::new(1., 1., 1., 1.)),
         ]);
 
-        let colors = grad_desc.generate(12);
+        let colors = grad_desc.generate(12, color::GradientGeneratorType::Discrete);
+        assert_eq!(colors.len(), 12);
+
+        assert_eq!(colors[0].chroma, 0.0);
+        assert_eq!(colors[4].chroma, 0.0);
+        assert_eq!(colors[8].chroma, 0.0);
+    }
+
+    #[test]
+    fn test_generate_continuous() {
+        let grad_desc = color::GradientDescriptor::new(vec![
+            Lch::from_color(Srgba::new(0., 0., 0., 1.)),
+            Lch::from_color(Srgba::new(0.5, 0.5, 0.5, 1.)),
+            Lch::from_color(Srgba::new(1., 1., 1., 1.)),
+        ]);
+
+        let colors = grad_desc.generate(12, color::GradientGeneratorType::Continuous);
         assert_eq!(colors.len(), 12);
 
         assert_eq!(colors[0].chroma, 0.0);
