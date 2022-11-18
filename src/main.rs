@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::vec;
 
-use clap::{App, Arg};
+use clap::{arg, command};
 use gif;
 use gif_dispose;
 use palette;
@@ -10,32 +10,18 @@ use palette::FromColor;
 mod color;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = App::new("rainbowgif")
-        .version("0.1.0")
-        .about("Rainbow GIF")
+    let matches = command!()
+        .arg(arg!(<INPUT_FILE> "The path to the input file"))
+        .arg(arg!(<OUTPUT_FILE> "The path to the output file"))
         .arg(
-            Arg::with_name("INPUT_FILE")
-                .required(true)
-                .help("The path to the input file"),
-        )
-        .arg(
-            Arg::with_name("OUTPUT_FILE")
-                .required(true)
-                .help("The path to the output file"),
-        )
-        .arg(
-            Arg::with_name("colors")
-                .short("c")
-                .long("colors")
-                .value_name("COLOR")
-                .takes_value(true)
-                .use_delimiter(true)
+            arg!(-c --colors <COLORS> "The colors to use in the gradient")
+                .value_delimiter(',')
                 .default_value("FF0000,00FF00,0000FF")
                 .help("The colors to use in the gradient"),
         )
         .get_matches();
 
-    let color_strings = matches.values_of("colors").unwrap();
+    let color_strings = matches.get_many::<String>("colors").unwrap();
     let mut color_vec = vec::Vec::new();
     for color_string in color_strings {
         if color_string.len() != 6 {
@@ -48,7 +34,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let src_image_path = matches.value_of("INPUT_FILE").unwrap();
+    let src_image_path = matches.get_one::<String>("INPUT_FILE").unwrap();
     let src_image = match File::open(src_image_path) {
         Ok(f) => f,
         Err(e) => return Err(format!("{}: {}", e.to_string(), src_image_path).into()),
@@ -66,7 +52,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         frames.push((frame.clone(), screen.pixels.clone()));
     }
 
-    let dest_image_path = matches.value_of("OUTPUT_FILE").unwrap();
+    let dest_image_path = matches.get_one::<String>("OUTPUT_FILE").unwrap();
     let mut dest_image = File::create(dest_image_path)?;
     let mut encoder = gif::Encoder::new(&mut dest_image, decoder.width(), decoder.height(), &[])?;
     encoder.set_repeat(gif::Repeat::Infinite).unwrap();
