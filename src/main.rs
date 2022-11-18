@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::vec;
 
-use clap::{arg, command};
+use clap::{arg, command, value_parser};
 use gif;
 use gif_dispose;
 use palette;
@@ -11,13 +11,19 @@ mod color;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = command!()
-        .arg(arg!(<INPUT_FILE> "The path to the input file"))
-        .arg(arg!(<OUTPUT_FILE> "The path to the output file"))
+        .arg(arg!(input_file: <INPUT_FILE> "The path to the input file"))
+        .arg(arg!(output_file: <OUTPUT_FILE> "The path to the output file"))
         .arg(
-            arg!(-c --colors <COLORS> "The colors to use in the gradient")
+            arg!(colors: -c --colors <COLORS> "The colors to use in the gradient")
                 .value_delimiter(',')
                 .default_value("FF0000,00FF00,0000FF")
                 .help("The colors to use in the gradient"),
+        )
+        .arg(
+            arg!(generator: -g --generator <GENERATOR> "The generator to use")
+                .value_parser(value_parser!(color::GradientGeneratorType))
+                .default_value("discrete")
+                .help("The type of generator to use (discrete | continuous)"),
         )
         .get_matches();
 
@@ -34,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let src_image_path = matches.get_one::<String>("INPUT_FILE").unwrap();
+    let src_image_path = matches.get_one::<String>("input_file").unwrap();
     let src_image = match File::open(src_image_path) {
         Ok(f) => f,
         Err(e) => return Err(format!("{}: {}", e.to_string(), src_image_path).into()),
@@ -52,13 +58,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         frames.push((frame.clone(), screen.pixels.clone()));
     }
 
-    let dest_image_path = matches.get_one::<String>("OUTPUT_FILE").unwrap();
+    let dest_image_path = matches.get_one::<String>("output_file").unwrap();
     let mut dest_image = File::create(dest_image_path)?;
     let mut encoder = gif::Encoder::new(&mut dest_image, decoder.width(), decoder.height(), &[])?;
     encoder.set_repeat(gif::Repeat::Infinite).unwrap();
 
     let gradient_desc = color::GradientDescriptor::new(color_vec);
-    let colors = gradient_desc.generate(frames.len(), color::GradientGeneratorType::Continuous);
+    let generator_type = matches
+        .get_one::<color::GradientGeneratorType>("generator")
+        .unwrap()
+        .to_owned();
+    let colors = gradient_desc.generate(frames.len(), generator_type);
 
     for (i, (frame, pixels)) in frames.into_iter().enumerate() {
         let new_color = colors[i];

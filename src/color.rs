@@ -1,3 +1,4 @@
+use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
 use palette::{white_point, FromColor, Lch, Mix};
 use std::vec;
@@ -38,11 +39,52 @@ struct GradientKeyFrame<'a> {
     position: f64,
 }
 
+#[derive(Clone, Copy)]
 pub enum GradientGeneratorType {
     // where the colors are calculated by global and local position
     Discrete,
     // where palette generates it, taking into account all colors
     Continuous,
+}
+
+impl ValueEnum for GradientGeneratorType {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[
+            GradientGeneratorType::Discrete,
+            GradientGeneratorType::Continuous,
+        ]
+    }
+
+    fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
+        Some(match self {
+            GradientGeneratorType::Discrete => PossibleValue::new("discrete")
+                .help("Colors are calculated by global and local position"),
+            GradientGeneratorType::Continuous => PossibleValue::new("continuous")
+                .help("Palette generates the gradient, taking into account all of the colors"),
+        })
+    }
+}
+
+impl std::fmt::Display for GradientGeneratorType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.to_possible_value()
+            .expect("no values are skipped")
+            .get_name()
+            .fmt(f)
+    }
+}
+
+impl std::str::FromStr for GradientGeneratorType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        for variant in Self::value_variants() {
+            if variant.to_possible_value().unwrap().matches(s, false) {
+                return Ok(*variant);
+            }
+        }
+        Err(format!("Invalid variant: {}", s))
+    }
 }
 
 impl GradientDescriptor {
