@@ -78,26 +78,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let mut frame_pixels = vec![];
         for pixel in pixels.pixels() {
-            let original_alpha = pixel.a;
-
-            // create LCH pixel
-            let lch_pixel =
-                palette::Lch::<palette::white_point::D65, f64>::from_color(color::ColorType::new(
+            // create LCHA pixel
+            let lcha_pixel = palette::Lcha::<palette::white_point::D65, f64>::from_color(
+                color::ColorType::from_components((
                     (pixel.r as f64) / 255.,
                     (pixel.g as f64) / 255.,
                     (pixel.b as f64) / 255.,
                     (pixel.a as f64) / 255.,
-                ));
+                )),
+            );
 
             // blend
-            let new_lch_pixel = color::blend_color(lch_pixel, new_color);
+            let new_lcha_pixel = color::blend_color(lcha_pixel, new_color);
 
             // convert it to rgb
-            let rgba_pixel = color::ColorType::from_color(new_lch_pixel);
+            let rgba_pixel = color::ColorType::from_color(new_lcha_pixel);
             frame_pixels.push((rgba_pixel.color.red * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.green * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.blue * 255.) as u8);
-            frame_pixels.push(original_alpha);
+            frame_pixels.push((rgba_pixel.alpha * 255.) as u8);
         }
 
         let mut new_frame = gif::Frame::from_rgba(
