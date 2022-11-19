@@ -1,6 +1,6 @@
 use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
-use palette::{white_point, FromColor, Lcha, Mix};
+use palette::{encoding, white_point, FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
 use std::vec;
 
 #[cfg(not(feature = "linear_srgb"))]
@@ -9,30 +9,107 @@ pub type ColorType = palette::rgb::Srgba<f64>;
 #[cfg(feature = "linear_srgb")]
 pub type ColorType = palette::rgb::LinSrgba<f64>;
 
+#[derive(Clone, Copy)]
+pub enum ColorSpace {
+    HSL,
+    HSV,
+    LCH,
+}
+
+impl ValueEnum for ColorSpace {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[ColorSpace::HSL, ColorSpace::HSV, ColorSpace::LCH]
+    }
+
+    fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
+        Some(match self {
+            ColorSpace::HSL => PossibleValue::new("hsl").help("HSL"),
+            ColorSpace::HSV => PossibleValue::new("hsv").help("HSV"),
+            ColorSpace::LCH => {
+                PossibleValue::new("lch").help("CIE L*C*h°, a polar version of CIE L*a*b*")
+            }
+        })
+    }
+}
+
+impl std::fmt::Display for ColorSpace {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.to_possible_value()
+            .expect("no values are skipped")
+            .get_name()
+            .fmt(f)
+    }
+}
+
+impl std::str::FromStr for ColorSpace {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        for variant in Self::value_variants() {
+            if variant.to_possible_value().unwrap().matches(s, false) {
+                return Ok(*variant);
+            }
+        }
+        Err(format!("Invalid variant: {}", s))
+    }
+}
+
 pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>
 where
     C: FromColor<ColorType>,
 {
-    let r = u64::from_str_radix(&color_string[0..2], 16)? as f64;
-    let g = u64::from_str_radix(&color_string[2..4], 16)? as f64;
-    let b = u64::from_str_radix(&color_string[4..6], 16)? as f64;
+    let r = u8::from_str_radix(&color_string[0..2], 16)? as f64;
+    let g = u8::from_str_radix(&color_string[2..4], 16)? as f64;
+    let b = u8::from_str_radix(&color_string[4..6], 16)? as f64;
 
     return Ok(C::from_color(ColorType::new(r, g, b, 255.0)));
 }
 
-pub fn blend_color(
-    bottom: Lcha<white_point::D65, f64>,
-    top: Lcha<white_point::D65, f64>,
-) -> Lcha<white_point::D65, f64> {
-    let (_, top_c, top_h, _) = top.into_components();
-    let (bottom_l, _, _, bottom_a) = bottom.into_components();
+pub trait Componentize<H, C, L, A> {
+    fn get_components(&self) -> (H, C, L, A);
 
-    return Lcha::from_components((bottom_l, top_c, top_h, bottom_a));
+    fn from_components(h: H, c: C, l: L, a: A) -> Self;
 }
 
-struct GradientKeyFrame<'a> {
-    color: &'a Lcha<white_point::D65, f64>,
-    position: f64,
+impl Componentize<LabHue<f64>, f64, f64, f64> for Lcha<white_point::D65, f64> {
+    fn get_components(&self) -> (LabHue<f64>, f64, f64, f64) {
+        let (l, c, h, a) = self.into_components();
+        return (h, c, l, a);
+    }
+
+    fn from_components(h: LabHue<f64>, c: f64, l: f64, a: f64) -> Self {
+        return Lcha::from_components((l, c, h, a));
+    }
+}
+
+impl Componentize<RgbHue<f64>, f64, f64, f64> for Hsla<encoding::Srgb, f64> {
+    fn get_components(&self) -> (RgbHue<f64>, f64, f64, f64) {
+        return self.into_components();
+    }
+
+    fn from_components(h: RgbHue<f64>, c: f64, l: f64, a: f64) -> Self {
+        return Hsla::from_components((h, c, l, a));
+    }
+}
+
+impl Componentize<RgbHue<f64>, f64, f64, f64> for Hsva<encoding::Srgb, f64> {
+    fn get_components(&self) -> (RgbHue<f64>, f64, f64, f64) {
+        return self.into_components();
+    }
+
+    fn from_components(h: RgbHue<f64>, c: f64, l: f64, a: f64) -> Self {
+        return Hsva::from_components((h, c, l, a));
+    }
+}
+
+pub fn blend_colors<H, C, L, A, Color: Componentize<H, C, L, A>>(
+    bottom: &Color,
+    top: &Color,
+) -> Color {
+    let (top_h, _, _, _) = top.get_components();
+    let (_, bottom_c, bottom_l, bottom_a) = bottom.get_components();
+
+    return Color::from_components(top_h, bottom_c, bottom_l, bottom_a);
 }
 
 #[derive(Clone, Copy)]
@@ -83,13 +160,21 @@ impl std::str::FromStr for GradientGeneratorType {
     }
 }
 
-pub struct GradientDescriptor {
-    pub colors: vec::Vec<Lcha<white_point::D65, f64>>,
+struct GradientKeyFrame<'a, C>
+where
+    C: Mix<Scalar = f64> + Sized,
+{
+    color: &'a C,
+    position: f64,
+}
+
+pub struct GradientDescriptor<C: Mix<Scalar = f64> + Sized> {
+    pub colors: vec::Vec<C>,
     pub positions: vec::Vec<f64>,
 }
 
-impl GradientDescriptor {
-    pub fn new(mut colors: vec::Vec<Lcha<white_point::D65, f64>>) -> GradientDescriptor {
+impl<C: Mix<Scalar = f64> + Sized + Clone> GradientDescriptor<C> {
+    pub fn new(mut colors: vec::Vec<C>) -> GradientDescriptor<C> {
         colors.push(colors[0].clone());
         let rng = 0..colors.len();
         let length = std::cmp::max(colors.len() - 1, 1);
@@ -103,20 +188,20 @@ impl GradientDescriptor {
         &self,
         frame_count: usize,
         generator_type: GradientGeneratorType,
-    ) -> vec::Vec<Lcha<white_point::D65, f64>> {
+    ) -> vec::Vec<C> {
         return match generator_type {
             GradientGeneratorType::Continuous => self.generate_continuous(frame_count),
             GradientGeneratorType::Discrete => self.generate_discrete(frame_count),
         };
     }
 
-    fn generate_continuous(&self, frame_count: usize) -> vec::Vec<Lcha<white_point::D65, f64>> {
+    fn generate_continuous(&self, frame_count: usize) -> vec::Vec<C> {
         let grad = gradient::Gradient::new(self.colors.clone());
         return grad.take(frame_count + 1).take(frame_count).collect();
     }
 
-    fn generate_discrete(&self, frame_count: usize) -> vec::Vec<Lcha<white_point::D65, f64>> {
-        let mut gen = vec::Vec::<Lcha<white_point::D65, f64>>::new();
+    fn generate_discrete(&self, frame_count: usize) -> vec::Vec<C> {
+        let mut gen = vec::Vec::<C>::new();
 
         for i in 0..frame_count {
             let global_position = (i as f64) / (frame_count as f64);
@@ -137,7 +222,7 @@ impl GradientDescriptor {
     fn position_search<'a>(
         &'a self,
         position: f64,
-    ) -> (GradientKeyFrame<'a>, GradientKeyFrame<'a>) {
+    ) -> (GradientKeyFrame<'a, C>, GradientKeyFrame<'a, C>) {
         let base = 1.0 / ((self.colors.len() - 1) as f64);
         let lower_index = (position / base).floor() as usize;
 

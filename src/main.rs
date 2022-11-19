@@ -1,34 +1,28 @@
 use std::fs::File;
 use std::vec;
 
-use clap::{arg, command, value_parser};
+use clap::{arg, command, value_parser, ArgMatches};
 use gif;
 use gif_dispose;
 use palette;
-use palette::FromColor;
+use palette::{FromColor, IntoColor};
 
 mod color;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = command!()
-        .arg(arg!(input_file: <INPUT_FILE> "The path to the input file"))
-        .arg(arg!(output_file: <OUTPUT_FILE> "The path to the output file"))
-        .arg(
-            arg!(colors: -c --colors <COLORS> "The colors to use in the gradient")
-                .value_delimiter(',')
-                .default_value("FF0000,00FF00,0000FF")
-                .help("The colors to use in the gradient"),
-        )
-        .arg(
-            arg!(generator: -g --generator <GENERATOR> "The generator to use")
-                .value_parser(value_parser!(color::GradientGeneratorType))
-                .default_value("discrete")
-                .help("The type of generator to use (discrete | continuous)"),
-        )
-        .get_matches();
-
+fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn std::error::Error>>
+where
+    Color: FromColor<color::ColorType>
+        + IntoColor<color::ColorType>
+        + color::Componentize<H, C, L, A>
+        + palette::WithAlpha<f64>
+        + palette::Mix<Scalar = f64>
+        + Clone
+        + Sized,
+    palette::rgb::Rgb<palette::encoding::Srgb, f64>:
+        palette::convert::FromColorUnclamped<<Color as palette::WithAlpha<f64>>::Color>,
+{
     let color_strings = matches.get_many::<String>("colors").unwrap();
-    let mut color_vec: vec::Vec<palette::Lcha<palette::white_point::D65, f64>> = vec::Vec::new();
+    let mut color_vec: vec::Vec<Color> = vec::Vec::new();
     for color_string in color_strings {
         if color_string.len() != 6 {
             return Err(format!("Invalid color format {}", &color_string).into());
@@ -71,7 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let colors = gradient_desc.generate(frames.len(), generator_type);
 
     for (i, (frame, pixels)) in frames.into_iter().enumerate() {
-        let new_color = colors[i];
+        let new_color = &colors[i];
 
         let width = pixels.width();
         let height = pixels.height();
@@ -79,19 +73,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut frame_pixels = vec![];
         for pixel in pixels.pixels() {
             // create LCHA pixel
-            let lcha_pixel =
-                palette::Lcha::<palette::white_point::D65, f64>::from_color(color::ColorType::new(
-                    (pixel.r as f64) / 255.,
-                    (pixel.g as f64) / 255.,
-                    (pixel.b as f64) / 255.,
-                    (pixel.a as f64) / 255.,
-                ));
+            let original_pixel = Color::from_color(color::ColorType::new(
+                (pixel.r as f64) / 255.,
+                (pixel.g as f64) / 255.,
+                (pixel.b as f64) / 255.,
+                (pixel.a as f64) / 255.,
+            ));
 
             // blend
-            let new_lcha_pixel = color::blend_color(lcha_pixel, new_color);
+            let blended_pixel = color::blend_colors(&original_pixel, new_color);
 
             // convert it to rgb
-            let rgba_pixel = color::ColorType::from_color(new_lcha_pixel);
+            let rgba_pixel = color::ColorType::from_color(blended_pixel);
             frame_pixels.push((rgba_pixel.color.red * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.green * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.blue * 255.) as u8);
@@ -112,4 +105,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     return Ok(());
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let matches = command!()
+        .arg(arg!(input_file: <INPUT_FILE> "The path to the input file"))
+        .arg(arg!(output_file: <OUTPUT_FILE> "The path to the output file"))
+        .arg(
+            arg!(colors: -c --colors <COLORS> "The colors to use in the gradient")
+                .value_delimiter(',')
+                .default_value("FF0000,00FF00,0000FF")
+                .help("The colors to use in the gradient"),
+        )
+        .arg(
+            arg!(generator: -g --generator <GENERATOR> "The generator to use")
+                .value_parser(value_parser!(color::GradientGeneratorType))
+                .default_value("discrete")
+                .help("The type of generator to use"),
+        )
+        .arg(
+            arg!(color_space: -s --color_space <COLOR_SPACE> "The color space to use")
+                .value_parser(value_parser!(color::ColorSpace))
+                .default_value("lch")
+                .help("The type of color space to use"),
+        )
+        .get_matches();
+
+    match matches.get_one::<color::ColorSpace>("color_space").unwrap() {
+        color::ColorSpace::HSL => main_impl::<
+            palette::RgbHue<f64>,
+            f64,
+            f64,
+            f64,
+            palette::Hsla<palette::encoding::srgb::Srgb, f64>,
+        >(matches),
+        color::ColorSpace::HSV => main_impl::<
+            palette::RgbHue<f64>,
+            f64,
+            f64,
+            f64,
+            palette::Hsva<palette::encoding::srgb::Srgb, f64>,
+        >(matches),
+        color::ColorSpace::LCH => main_impl::<
+            palette::LabHue<f64>,
+            f64,
+            f64,
+            f64,
+            palette::Lcha<palette::white_point::D65, f64>,
+        >(matches),
+    }
 }
