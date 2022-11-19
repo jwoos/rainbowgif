@@ -3,11 +3,10 @@ use palette::gradient;
 use palette::{encoding, white_point, FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
 use std::vec;
 
-#[cfg(not(feature = "linear_srgb"))]
 pub type ColorType = palette::rgb::Srgba<f64>;
 
-#[cfg(feature = "linear_srgb")]
-pub type ColorType = palette::rgb::LinSrgba<f64>;
+// TODO look into using linear
+// pub type ColorType = palette::rgb::LibSrgba<f64>;
 
 #[derive(Clone, Copy)]
 pub enum ColorSpace {

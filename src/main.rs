@@ -84,7 +84,8 @@ where
             let blended_pixel = color::blend_colors(&original_pixel, new_color);
 
             // convert it to rgb
-            let rgba_pixel = color::ColorType::from_color(blended_pixel);
+            let rgba_pixel =
+                palette::rgb::Rgba::<palette::encoding::Srgb, f64>::from_color(blended_pixel);
             frame_pixels.push((rgba_pixel.color.red * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.green * 255.) as u8);
             frame_pixels.push((rgba_pixel.color.blue * 255.) as u8);
