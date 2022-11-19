@@ -9,14 +9,15 @@ pub type ColorType = palette::rgb::Srgba<f64>;
 #[cfg(feature = "linear_srgb")]
 pub type ColorType = palette::rgb::LinSrgba<f64>;
 
-pub fn hex_to_color(
-    color_string: &str,
-) -> Result<Lcha<white_point::D65, f64>, std::num::ParseIntError> {
+pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>
+where
+    C: FromColor<ColorType>,
+{
     let r = u64::from_str_radix(&color_string[0..2], 16)? as f64;
     let g = u64::from_str_radix(&color_string[2..4], 16)? as f64;
     let b = u64::from_str_radix(&color_string[4..6], 16)? as f64;
 
-    return Ok(Lcha::from_color(ColorType::new(r, g, b, 255.0)));
+    return Ok(C::from_color(ColorType::new(r, g, b, 255.0)));
 }
 
 pub fn blend_color(
@@ -27,11 +28,6 @@ pub fn blend_color(
     let (bottom_l, _, _, bottom_a) = bottom.into_components();
 
     return Lcha::from_components((bottom_l, top_c, top_h, bottom_a));
-}
-
-pub struct GradientDescriptor {
-    pub colors: vec::Vec<Lcha<white_point::D65, f64>>,
-    pub positions: vec::Vec<f64>,
 }
 
 struct GradientKeyFrame<'a> {
@@ -85,6 +81,11 @@ impl std::str::FromStr for GradientGeneratorType {
         }
         Err(format!("Invalid variant: {}", s))
     }
+}
+
+pub struct GradientDescriptor {
+    pub colors: vec::Vec<Lcha<white_point::D65, f64>>,
+    pub positions: vec::Vec<f64>,
 }
 
 impl GradientDescriptor {

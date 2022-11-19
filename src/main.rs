@@ -28,13 +28,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     let color_strings = matches.get_many::<String>("colors").unwrap();
-    let mut color_vec = vec::Vec::new();
+    let mut color_vec: vec::Vec<palette::Lcha<palette::white_point::D65, f64>> = vec::Vec::new();
     for color_string in color_strings {
         if color_string.len() != 6 {
             return Err(format!("Invalid color format {}", &color_string).into());
         }
 
-        match color::hex_to_color(&color_string) {
+        match color::from_hex(&color_string) {
             Ok(c) => color_vec.push(c),
             Err(e) => return Err(format!("{}: {}", e.to_string(), color_string).into()),
         }
@@ -79,14 +79,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut frame_pixels = vec![];
         for pixel in pixels.pixels() {
             // create LCHA pixel
-            let lcha_pixel = palette::Lcha::<palette::white_point::D65, f64>::from_color(
-                color::ColorType::from_components((
+            let lcha_pixel =
+                palette::Lcha::<palette::white_point::D65, f64>::from_color(color::ColorType::new(
                     (pixel.r as f64) / 255.,
                     (pixel.g as f64) / 255.,
                     (pixel.b as f64) / 255.,
                     (pixel.a as f64) / 255.,
-                )),
-            );
+                ));
 
             // blend
             let new_lcha_pixel = color::blend_color(lcha_pixel, new_color);
