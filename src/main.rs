@@ -4,8 +4,8 @@ use clap::{arg, command, value_parser, ArgMatches};
 use palette;
 use palette::{FromColor, IntoColor};
 
+mod codec;
 mod color;
-mod file;
 
 fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn std::error::Error>>
 where
@@ -33,14 +33,14 @@ where
     }
 
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
-    let decoder = file::GifDecoder::new(src_image_path)?;
+    let decoder = codec::gif::GifDecoder::new(src_image_path)?;
     let dest_image_path = matches.get_one::<String>("output_file").unwrap();
-    let encoder = file::GifEncoder::new(dest_image_path, decoder.get_dimensions())?;
+    let encoder = codec::gif::GifEncoder::new(dest_image_path, decoder.get_dimensions())?;
 
     // TODO: figure out either how to generate colors without knowing the frame count OR figure out
     // how to get the frame count while streaming the decoding process (not decoding everything at
     // once)
-    let frames: vec::Vec<file::Frame<color::ColorType>> = Iterator::collect(decoder.into_iter());
+    let frames: vec::Vec<codec::Frame<color::ColorType>> = Iterator::collect(decoder.into_iter());
     let gradient_desc = color::GradientDescriptor::new(color_vec);
     let generator_type = matches
         .get_one::<color::GradientGeneratorType>("generator")
@@ -64,7 +64,7 @@ where
             frame_pixels.push(blended_pixel);
         }
 
-        encoder.write(file::Frame {
+        encoder.write(codec::Frame {
             pixels: frame_pixels,
             delay: frame.delay,
             dispose: frame.dispose,
