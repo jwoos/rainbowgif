@@ -1,9 +1,6 @@
-use std::fs::File;
 use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
-use gif;
-use gif_dispose;
 use palette;
 use palette::{FromColor, IntoColor};
 
