@@ -1,19 +1,22 @@
+use std::vec;
+
 use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
 use palette::{encoding, white_point, FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
-use std::vec;
+
+pub type ScalarType = f64;
 
 // TODO look into using linear
-// pub type ColorType = palette::rgb::LibSrgba<f64>;
+// pub type ColorType = palette::rgb::LibSrgba<ScalarType>;
 
-pub type ColorType = palette::rgb::Srgba<f64>;
+pub type ColorType = palette::rgb::Srgba<ScalarType>;
 
 pub trait Color:
     palette::FromColor<ColorType>
     + palette::convert::FromColorUnclamped<ColorType>
     + palette::IntoColor<ColorType>
     + palette::convert::IntoColorUnclamped<ColorType>
-    + palette::WithAlpha<f64>
+    + palette::WithAlpha<ScalarType>
 {
 }
 
@@ -22,7 +25,7 @@ impl<T> Color for T where
         + palette::convert::FromColorUnclamped<ColorType>
         + palette::IntoColor<ColorType>
         + palette::convert::IntoColorUnclamped<ColorType>
-        + palette::WithAlpha<f64>
+        + palette::WithAlpha<ScalarType>
 {
 }
 
@@ -75,9 +78,9 @@ pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>
 where
     C: FromColor<ColorType>,
 {
-    let r = u8::from_str_radix(&color_string[0..2], 16)? as f64;
-    let g = u8::from_str_radix(&color_string[2..4], 16)? as f64;
-    let b = u8::from_str_radix(&color_string[4..6], 16)? as f64;
+    let r = u8::from_str_radix(&color_string[0..2], 16)? as ScalarType;
+    let g = u8::from_str_radix(&color_string[2..4], 16)? as ScalarType;
+    let b = u8::from_str_radix(&color_string[4..6], 16)? as ScalarType;
 
     return Ok(C::from_color(ColorType::new(r, g, b, 255.0)));
 }
@@ -88,33 +91,39 @@ pub trait Componentize<H, C, L, A> {
     fn from_components(h: H, c: C, l: L, a: A) -> Self;
 }
 
-impl Componentize<LabHue<f64>, f64, f64, f64> for Lcha<white_point::D65, f64> {
-    fn get_components(&self) -> (LabHue<f64>, f64, f64, f64) {
+impl Componentize<LabHue<ScalarType>, ScalarType, ScalarType, ScalarType>
+    for Lcha<white_point::D65, ScalarType>
+{
+    fn get_components(&self) -> (LabHue<ScalarType>, ScalarType, ScalarType, ScalarType) {
         let (l, c, h, a) = self.into_components();
         return (h, c, l, a);
     }
 
-    fn from_components(h: LabHue<f64>, c: f64, l: f64, a: f64) -> Self {
+    fn from_components(h: LabHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
         return Lcha::from_components((l, c, h, a));
     }
 }
 
-impl Componentize<RgbHue<f64>, f64, f64, f64> for Hsla<encoding::Srgb, f64> {
-    fn get_components(&self) -> (RgbHue<f64>, f64, f64, f64) {
+impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
+    for Hsla<encoding::Srgb, ScalarType>
+{
+    fn get_components(&self) -> (RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType) {
         return self.into_components();
     }
 
-    fn from_components(h: RgbHue<f64>, c: f64, l: f64, a: f64) -> Self {
+    fn from_components(h: RgbHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
         return Hsla::from_components((h, c, l, a));
     }
 }
 
-impl Componentize<RgbHue<f64>, f64, f64, f64> for Hsva<encoding::Srgb, f64> {
-    fn get_components(&self) -> (RgbHue<f64>, f64, f64, f64) {
+impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
+    for Hsva<encoding::Srgb, ScalarType>
+{
+    fn get_components(&self) -> (RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType) {
         return self.into_components();
     }
 
-    fn from_components(h: RgbHue<f64>, c: f64, l: f64, a: f64) -> Self {
+    fn from_components(h: RgbHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
         return Hsva::from_components((h, c, l, a));
     }
 }
@@ -179,25 +188,27 @@ impl std::str::FromStr for GradientGeneratorType {
 
 struct GradientKeyFrame<'a, C>
 where
-    C: Mix<Scalar = f64> + Sized,
+    C: Mix<Scalar = ScalarType> + Sized,
 {
     color: &'a C,
-    position: f64,
+    position: ScalarType,
 }
 
-pub struct GradientDescriptor<C: Mix<Scalar = f64> + Sized> {
+pub struct GradientDescriptor<C: Mix<Scalar = ScalarType> + Sized> {
     pub colors: vec::Vec<C>,
-    pub positions: vec::Vec<f64>,
+    pub positions: vec::Vec<ScalarType>,
 }
 
-impl<C: Mix<Scalar = f64> + Sized + Clone> GradientDescriptor<C> {
+impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
     pub fn new(mut colors: vec::Vec<C>) -> GradientDescriptor<C> {
         colors.push(colors[0].clone());
         let rng = 0..colors.len();
         let length = std::cmp::max(colors.len() - 1, 1);
         return GradientDescriptor {
             colors,
-            positions: rng.map(|i| (i as f64) / (length as f64)).collect(),
+            positions: rng
+                .map(|i| (i as ScalarType) / (length as ScalarType))
+                .collect(),
         };
     }
 
@@ -221,7 +232,7 @@ impl<C: Mix<Scalar = f64> + Sized + Clone> GradientDescriptor<C> {
         let mut gen = vec::Vec::<C>::new();
 
         for i in 0..frame_count {
-            let global_position = (i as f64) / (frame_count as f64);
+            let global_position = (i as ScalarType) / (frame_count as ScalarType);
 
             let (key_frame_src, key_frame_dest) = self.position_search(global_position);
             let local_position = (global_position - key_frame_src.position)
@@ -238,9 +249,9 @@ impl<C: Mix<Scalar = f64> + Sized + Clone> GradientDescriptor<C> {
 
     fn position_search<'a>(
         &'a self,
-        position: f64,
+        position: ScalarType,
     ) -> (GradientKeyFrame<'a, C>, GradientKeyFrame<'a, C>) {
-        let base = 1.0 / ((self.colors.len() - 1) as f64);
+        let base = 1.0 / ((self.colors.len() - 1) as ScalarType);
         let lower_index = (position / base).floor() as usize;
 
         if lower_index == self.colors.len() - 1 {

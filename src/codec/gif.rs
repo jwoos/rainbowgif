@@ -1,5 +1,4 @@
 use std::cell::RefCell;
-use std::error;
 use std::fs::File;
 use std::marker::PhantomData;
 use std::rc::Rc;
@@ -92,10 +91,10 @@ where
             let mut pixels = vec::Vec::new();
             for pixel in self.screen.pixels.pixels() {
                 pixels.push(C::from_color(color::ColorType::new(
-                    (pixel.r as f64) / 255.,
-                    (pixel.g as f64) / 255.,
-                    (pixel.b as f64) / 255.,
-                    (pixel.a as f64) / 255.,
+                    (pixel.r as color::ScalarType) / 255.,
+                    (pixel.g as color::ScalarType) / 255.,
+                    (pixel.b as color::ScalarType) / 255.,
+                    (pixel.a as color::ScalarType) / 255.,
                 )));
             }
 
@@ -137,10 +136,10 @@ where
                 let mut pixels = vec::Vec::new();
                 for pixel in self.decoder.screen.pixels.pixels() {
                     pixels.push(C::from_color(color::ColorType::new(
-                        (pixel.r as f64) / 255.,
-                        (pixel.g as f64) / 255.,
-                        (pixel.b as f64) / 255.,
-                        (pixel.a as f64) / 255.,
+                        (pixel.r as color::ScalarType) / 255.,
+                        (pixel.g as color::ScalarType) / 255.,
+                        (pixel.b as color::ScalarType) / 255.,
+                        (pixel.a as color::ScalarType) / 255.,
                     )));
                 }
 
@@ -191,8 +190,10 @@ impl<'a> GifEncoder {
     pub fn write<C>(&self, frame: Frame<C>) -> Result<(), String>
     where
         C: color::Color,
-        palette::rgb::Rgb<palette::encoding::Srgb, f64>:
-            palette::convert::FromColorUnclamped<<C as palette::WithAlpha<f64>>::Color>,
+        palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+            palette::convert::FromColorUnclamped<
+                <C as palette::WithAlpha<color::ScalarType>>::Color,
+            >,
     {
         let mut pixels = vec::Vec::new();
         for pixel in frame.pixels {
@@ -218,9 +219,9 @@ impl<'a> GifEncoder {
 
 /* impl<C> super::Encodable<C> for GifEncoder
 where
-    C: color::Color + palette::WithAlpha<f64>,
-    palette::rgb::Rgb<palette::encoding::Srgb, f64>:
-        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<f64>>::Color>,
+    C: color::Color + palette::WithAlpha<color::ScalarType>,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     fn encode(&self, frame: Frame<C>) -> Result<(), Box<dyn error::Error>> {
         return Ok(());
@@ -236,9 +237,9 @@ where
 
 /* impl<C> FromIterator<Frame<C>> for GifEncoder
 where
-    C: color::Color + palette::WithAlpha<f64>,
-    palette::rgb::Rgb<palette::encoding::Srgb, f64>:
-        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<f64>>::Color>,
+    C: color::Color + palette::WithAlpha<color::ScalarType>,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     fn from_iter<T>(iter: T) -> Self
     where

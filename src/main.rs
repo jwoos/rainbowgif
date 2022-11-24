@@ -8,10 +8,15 @@ mod color;
 
 fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn std::error::Error>>
 where
-    Color:
-        color::Color + color::Componentize<H, C, L, A> + palette::Mix<Scalar = f64> + Clone + Sized,
-    palette::rgb::Rgb<palette::encoding::Srgb, f64>:
-        palette::convert::FromColorUnclamped<<Color as palette::WithAlpha<f64>>::Color>,
+    Color: color::Color
+        + color::Componentize<H, C, L, A>
+        + palette::Mix<Scalar = color::ScalarType>
+        + Clone
+        + Sized,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<
+            <Color as palette::WithAlpha<color::ScalarType>>::Color,
+        >,
 {
     let color_strings = matches.get_many::<String>("colors").unwrap();
     let mut color_vec: vec::Vec<Color> = vec::Vec::new();
@@ -88,25 +93,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match matches.get_one::<color::ColorSpace>("color_space").unwrap() {
         color::ColorSpace::HSL => main_impl::<
-            palette::RgbHue<f64>,
-            f64,
-            f64,
-            f64,
-            palette::Hsla<palette::encoding::srgb::Srgb, f64>,
+            palette::RgbHue<color::ScalarType>,
+            color::ScalarType,
+            color::ScalarType,
+            color::ScalarType,
+            palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
         >(matches),
         color::ColorSpace::HSV => main_impl::<
-            palette::RgbHue<f64>,
-            f64,
-            f64,
-            f64,
-            palette::Hsva<palette::encoding::srgb::Srgb, f64>,
+            palette::RgbHue<color::ScalarType>,
+            color::ScalarType,
+            color::ScalarType,
+            color::ScalarType,
+            palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
         >(matches),
         color::ColorSpace::LCH => main_impl::<
-            palette::LabHue<f64>,
-            f64,
-            f64,
-            f64,
-            palette::Lcha<palette::white_point::D65, f64>,
+            palette::LabHue<color::ScalarType>,
+            color::ScalarType,
+            color::ScalarType,
+            color::ScalarType,
+            palette::Lcha<palette::white_point::D65, color::ScalarType>,
         >(matches),
     }
 }
