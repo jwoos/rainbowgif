@@ -2,20 +2,14 @@ use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
 use palette;
-use palette::{FromColor, IntoColor};
 
 mod codec;
 mod color;
 
 fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn std::error::Error>>
 where
-    Color: FromColor<color::ColorType>
-        + IntoColor<color::ColorType>
-        + color::Componentize<H, C, L, A>
-        + palette::WithAlpha<f64>
-        + palette::Mix<Scalar = f64>
-        + Clone
-        + Sized,
+    Color:
+        color::Color + color::Componentize<H, C, L, A> + palette::Mix<Scalar = f64> + Clone + Sized,
     palette::rgb::Rgb<palette::encoding::Srgb, f64>:
         palette::convert::FromColorUnclamped<<Color as palette::WithAlpha<f64>>::Color>,
 {
@@ -33,14 +27,15 @@ where
     }
 
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
-    let decoder = codec::gif::GifDecoder::new(src_image_path)?;
+    // automatically transform to the specified color space
+    let decoder: codec::gif::GifDecoder<Color> = codec::gif::GifDecoder::new(src_image_path)?;
     let dest_image_path = matches.get_one::<String>("output_file").unwrap();
     let encoder = codec::gif::GifEncoder::new(dest_image_path, decoder.get_dimensions())?;
 
     // TODO: figure out either how to generate colors without knowing the frame count OR figure out
     // how to get the frame count while streaming the decoding process (not decoding everything at
     // once)
-    let frames: vec::Vec<codec::Frame<color::ColorType>> = Iterator::collect(decoder.into_iter());
+    let frames: vec::Vec<_> = Iterator::collect(decoder.into_iter());
     let gradient_desc = color::GradientDescriptor::new(color_vec);
     let generator_type = matches
         .get_one::<color::GradientGeneratorType>("generator")
@@ -52,16 +47,8 @@ where
 
         let mut frame_pixels = vec::Vec::new();
         for pixel in frame.pixels {
-            // create new pixel using color space from input pixel (RGBA)
-            let original_pixel = Color::from_color(pixel);
-
             // blend
-            let blended_pixel = color::blend_colors(&original_pixel, new_color);
-
-            // convert it back to rgba
-            // let new_pixel =
-            //     color::ColorType::from_color(blended_pixel);
-            frame_pixels.push(blended_pixel);
+            frame_pixels.push(color::blend_colors(&pixel, new_color));
         }
 
         encoder.write(codec::Frame {

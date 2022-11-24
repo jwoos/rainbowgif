@@ -1,14 +1,15 @@
-pub mod gif;
-
+use std::error;
 use std::vec;
 
 use crate::color;
 
 use ::gif as gif_lib;
 
+pub mod gif;
+
 pub struct Frame<C>
 where
-    C: palette::FromColor<color::ColorType> + palette::IntoColor<color::ColorType>,
+    C: color::Color,
 {
     pub pixels: vec::Vec<C>,
     pub delay: u16,
@@ -32,10 +33,24 @@ where
 //     }
 // }
 
-pub trait Decodable: IntoIterator {
-    fn get_frames() -> dyn IntoIterator<Item = vec::Vec<u8>, IntoIter = vec::IntoIter<vec::Vec<u8>>>;
+pub trait Decodable: IntoIterator<Item = Frame<Self::OutputColor>>
+where
+    <Self as Decodable>::OutputColor: color::Color,
+{
+    type OutputColor;
+
+    fn decode(&self) -> Result<Option<Frame<Self::OutputColor>>, Box<dyn error::Error>>;
+
+    fn decode_all(
+        &self,
+    ) -> Result<Option<vec::Vec<Frame<Self::OutputColor>>>, Box<dyn error::Error>>;
 }
 
-pub trait Encodable: FromIterator<vec::Vec<u8>> {
-    fn write_frame(&mut self, frame: vec::Vec<u8>) -> ();
+pub trait Encodable<C>: FromIterator<Frame<C>>
+where
+    C: color::Color,
+{
+    fn encode(&self, frame: Frame<C>) -> Result<(), Box<dyn error::Error>>;
+
+    fn encode_all(&self, frames: vec::Vec<Frame<C>>) -> Result<(), Box<dyn error::Error>>;
 }
