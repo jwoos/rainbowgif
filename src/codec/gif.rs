@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::error;
 use std::fs::File;
 use std::marker::PhantomData;
 use std::rc::Rc;
@@ -51,9 +52,8 @@ where
     }
 
     pub fn get_dimensions(&self) -> (u16, u16) {
-        let dec = self.decoder.borrow();
-
-        return (dec.width(), dec.height());
+        let dec_ref = self.decoder.borrow();
+        return (dec_ref.width(), dec_ref.height());
     }
 }
 
@@ -69,14 +69,15 @@ where
     }
 }
 
-/* impl<C> super::Decodable for GifDecoder<C>
+impl<C> super::Decodable for GifDecoder<C>
 where
     C: color::Color,
 {
     type OutputColor = C;
 
-    fn decode(&self) -> Result<Option<Frame<C>>, Box<dyn error::Error>> {
-        let frame = match self.decoder.borrow_mut().read_next_frame() {
+    fn decode(&mut self) -> Result<Option<Frame<C>>, Box<dyn error::Error>> {
+        let mut dec_ref = self.decoder.borrow_mut();
+        let frame = match dec_ref.read_next_frame() {
             Ok(f) => {
                 if let Some(f_result) = f {
                     f_result
@@ -109,10 +110,11 @@ where
         return Err(Box::from("Could not blit frame"));
     }
 
-    fn decode_all(&self) -> Result<Option<vec::Vec<Frame<C>>>, Box<dyn error::Error>> {
+    // TODO
+    fn decode_all(&mut self) -> Result<Option<vec::Vec<Frame<C>>>, Box<dyn error::Error>> {
         return Ok(None);
     }
-} */
+}
 
 pub struct GifDecoderImpl<C> {
     decoder: GifDecoder<C>,
@@ -155,13 +157,17 @@ where
     }
 }
 
-pub struct GifEncoder {
+pub struct GifEncoder<C> {
+    phantom: PhantomData<C>,
     encoder: RefCell<gif::Encoder<File>>,
     width: u16,
     height: u16,
 }
 
-impl<'a> GifEncoder {
+impl<'a, C> GifEncoder<C>
+where
+    C: color::Color,
+{
     pub fn new<P: AsRef<std::path::Path> + std::fmt::Display>(
         path: P,
         (width, height): (u16, u16),
@@ -181,13 +187,14 @@ impl<'a> GifEncoder {
         }
 
         return Ok(GifEncoder {
+            phantom: PhantomData,
             encoder: encoder_impl,
             width,
             height,
         });
     }
 
-    pub fn write<C>(&self, frame: Frame<C>) -> Result<(), String>
+    pub fn write(&self, frame: Frame<C>) -> Result<(), String>
     where
         C: color::Color,
         palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
@@ -217,23 +224,24 @@ impl<'a> GifEncoder {
     }
 }
 
-/* impl<C> super::Encodable<C> for GifEncoder
+impl<C> super::Encodable for GifEncoder<C>
 where
-    C: color::Color + palette::WithAlpha<color::ScalarType>,
+    C: color::Color,
     palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
-    fn encode(&self, frame: Frame<C>) -> Result<(), Box<dyn error::Error>> {
-        return Ok(());
+    type InputColor = C;
+
+    fn encode(&self, frame: Frame<C>) -> Result<(), String> {
+        // TODO probably should have own error type
+        return self.write(frame);
     }
 
-    fn encode_all(
-        &self,
-        frames: vec::Vec<Frame<C>>,
-    ) -> Result<(), Box<dyn error::Error>> {
+    // TODO
+    fn encode_all(&self, frames: vec::Vec<Frame<C>>) -> Result<(), Box<dyn error::Error>> {
         return Ok(());
     }
-} */
+}
 
 /* impl<C> FromIterator<Frame<C>> for GifEncoder
 where

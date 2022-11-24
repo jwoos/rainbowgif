@@ -39,18 +39,25 @@ where
 {
     type OutputColor;
 
-    fn decode(&self) -> Result<Option<Frame<Self::OutputColor>>, Box<dyn error::Error>>;
+    fn decode(&mut self) -> Result<Option<Frame<Self::OutputColor>>, Box<dyn error::Error>>;
 
     fn decode_all(
-        &self,
+        &mut self,
     ) -> Result<Option<vec::Vec<Frame<Self::OutputColor>>>, Box<dyn error::Error>>;
 }
 
-pub trait Encodable<C>: FromIterator<Frame<C>>
+// can't use FromIterator as a super trait, as it requires more than just an iterator to encode all
+// the data
+pub trait Encodable
 where
-    C: color::Color,
+    <Self as Encodable>::InputColor: color::Color,
 {
-    fn encode(&self, frame: Frame<C>) -> Result<(), Box<dyn error::Error>>;
+    type InputColor;
 
-    fn encode_all(&self, frames: vec::Vec<Frame<C>>) -> Result<(), Box<dyn error::Error>>;
+    fn encode(&self, frame: Frame<Self::InputColor>) -> Result<(), String>;
+
+    fn encode_all(
+        &self,
+        frames: vec::Vec<Frame<Self::InputColor>>,
+    ) -> Result<(), Box<dyn error::Error>>;
 }
