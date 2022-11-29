@@ -1,3 +1,4 @@
+use std::error;
 use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
@@ -6,7 +7,7 @@ use palette;
 mod codec;
 mod color;
 
-fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn std::error::Error>>
+fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
     Color: color::Color
         + color::Componentize<H, C, L, A>
@@ -67,7 +68,7 @@ where
     return Ok(());
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = command!()
         .arg(arg!(input_file: <INPUT_FILE> "The path to the input file"))
         .arg(arg!(output_file: <OUTPUT_FILE> "The path to the output file"))

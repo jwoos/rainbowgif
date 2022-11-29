@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::vec;
 
-use super::Frame;
+use super::{DecodeError, EncodeError, Frame};
 use crate::color;
 
 use palette::FromColor;
@@ -20,18 +20,30 @@ impl<C> GifDecoder<C>
 where
     C: color::Color,
 {
-    pub fn new<P: AsRef<std::path::Path> + std::fmt::Display>(path: P) -> Result<Self, String> {
+    pub fn new<P: AsRef<std::path::Path> + std::fmt::Display>(
+        path: P,
+    ) -> Result<Self, Box<dyn error::Error>> {
         let mut decoder_options = gif::DecodeOptions::new();
         decoder_options.set_color_output(gif::ColorOutput::Indexed);
 
         let img = match File::open(&path) {
             Ok(f) => f,
-            Err(e) => return Err(format!("{}: {}", e.to_string(), path)),
+            Err(e) => {
+                return Err(Box::new(DecodeError::Init(
+                    Some(Box::new(e)),
+                    format!("Could not open {}", path),
+                )));
+            }
         };
 
         let decoder = match decoder_options.read_info(img) {
             Ok(dec) => RefCell::new(dec),
-            Err(e) => return Err(e.to_string()),
+            Err(e) => {
+                return Err(Box::new(DecodeError::Read(
+                    Some(Box::new(e)),
+                    "Could not read image".to_owned(),
+                )));
+            }
         };
 
         let rc_decoder = Rc::new(decoder);
@@ -88,26 +100,30 @@ where
             Err(e) => return Err(Box::new(e)),
         };
 
-        if let Ok(_) = self.screen.blit_frame(&frame) {
-            let mut pixels = vec::Vec::new();
-            for pixel in self.screen.pixels.pixels() {
-                pixels.push(C::from_color(color::ColorType::new(
-                    (pixel.r as color::ScalarType) / 255.,
-                    (pixel.g as color::ScalarType) / 255.,
-                    (pixel.b as color::ScalarType) / 255.,
-                    (pixel.a as color::ScalarType) / 255.,
-                )));
+        return match self.screen.blit_frame(&frame) {
+            Ok(_) => {
+                let mut pixels = vec::Vec::new();
+                for pixel in self.screen.pixels.pixels() {
+                    pixels.push(C::from_color(color::ColorType::new(
+                        (pixel.r as color::ScalarType) / 255.,
+                        (pixel.g as color::ScalarType) / 255.,
+                        (pixel.b as color::ScalarType) / 255.,
+                        (pixel.a as color::ScalarType) / 255.,
+                    )));
+                }
+
+                Ok(Some(Frame {
+                    pixels,
+                    delay: frame.delay,
+                    dispose: frame.dispose,
+                    interlaced: frame.interlaced,
+                }))
             }
-
-            return Ok(Some(Frame {
-                pixels,
-                delay: frame.delay,
-                dispose: frame.dispose,
-                interlaced: frame.interlaced,
-            }));
-        }
-
-        return Err(Box::from("Could not blit frame"));
+            Err(e) => Err(Box::new(DecodeError::FrameRead(
+                Some(Box::new(e)),
+                "Could not blit frame".to_owned(),
+            ))),
+        };
     }
 
     // TODO
@@ -194,7 +210,7 @@ where
         });
     }
 
-    pub fn write(&self, frame: Frame<C>) -> Result<(), String>
+    pub fn write(&self, frame: Frame<C>) -> Result<(), Box<dyn error::Error>>
     where
         C: color::Color,
         palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
@@ -217,7 +233,10 @@ where
         new_frame.interlaced = frame.interlaced;
 
         if let Err(e) = self.encoder.borrow_mut().write_frame(&new_frame) {
-            return Err(e.to_string());
+            return Err(Box::new(EncodeError::FrameWrite(
+                Some(Box::new(e)),
+                "write_frame errored".to_owned(),
+            )));
         }
 
         return Ok(());
@@ -232,7 +251,7 @@ where
 {
     type InputColor = C;
 
-    fn encode(&self, frame: Frame<C>) -> Result<(), String> {
+    fn encode(&self, frame: Frame<C>) -> Result<(), Box<dyn error::Error>> {
         // TODO probably should have own error type
         return self.write(frame);
     }
