@@ -8,65 +8,48 @@ use ::gif as gif_lib;
 
 pub mod gif;
 
-#[derive(Debug)]
-pub enum DecodeError {
-    Init(Option<Box<dyn error::Error + 'static>>, String),
-    Read(Option<Box<dyn error::Error + 'static>>, String),
-    FrameRead(Option<Box<dyn error::Error + 'static>>, String),
-}
+macro_rules! define_error {
+    ($x:ident, { $($y:ident : $z:literal),* $(,)? }) => {
+        #[derive(Debug)]
+        pub enum $x {
+            $(
+                $y(Option<Box<dyn error::Error>>, String),
+            )*
+        }
 
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        return match self {
-            Self::Init(_, desc) => {
-                f.write_str(format!("Error initializing decoder: {desc}").as_str())
+        impl fmt::Display for $x {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                return match self {
+                    $(
+                        Self::$y(_, desc) => f.write_str(format!("{}: {desc}", $z).as_str()),
+                    )*
+                };
             }
-            Self::Read(_, desc) => f.write_str(format!("Error reading data: {desc}").as_str()),
-            Self::FrameRead(_, desc) => {
-                f.write_str(format!("Error reading frame: {desc}").as_str())
+        }
+
+        impl error::Error for $x {
+            fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+                return match self {
+                    $(
+                        Self::$y(src, _) => src.as_ref().map(|e| e.as_ref()),
+                    )*
+                };
             }
-        };
-    }
+        }
+    };
 }
 
-impl error::Error for DecodeError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        return match self {
-            Self::Init(src, _) => src.as_ref().map(|e| e.as_ref()),
-            Self::Read(src, _) => src.as_ref().map(|e| e.as_ref()),
-            Self::FrameRead(src, _) => src.as_ref().map(|e| e.as_ref()),
-        };
-    }
-}
+define_error!(DecodeError, {
+    Init: "Error initializing decoder",
+    Read: "Error reading data",
+    FrameRead: "Error reading frame",
+});
 
-#[derive(Debug)]
-pub enum EncodeError {
-    Init(Option<Box<dyn error::Error + 'static>>, String),
-    Write(Option<Box<dyn error::Error + 'static>>, String),
-    FrameWrite(Option<Box<dyn error::Error + 'static>>, String),
-}
-
-impl fmt::Display for EncodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        return match self {
-            Self::Init(_, desc) => f.write_str(format!("Error initializing: {desc}").as_str()),
-            Self::Write(_, desc) => f.write_str(format!("Error write data: {desc}").as_str()),
-            Self::FrameWrite(_, desc) => {
-                f.write_str(format!("Error writing frame: {desc}").as_str())
-            }
-        };
-    }
-}
-
-impl error::Error for EncodeError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        return match self {
-            Self::Init(src, _) => src.as_ref().map(|e| e.as_ref()),
-            Self::Write(src, _) => src.as_ref().map(|e| e.as_ref()),
-            Self::FrameWrite(src, _) => src.as_ref().map(|e| e.as_ref()),
-        };
-    }
-}
+define_error!(EncodeError, {
+    Init: "Error initializing encoder",
+    Write: "Error write data",
+    FrameWrite: "Error write frame",
+});
 
 pub struct Frame<C>
 where
