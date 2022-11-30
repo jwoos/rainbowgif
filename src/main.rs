@@ -1,4 +1,5 @@
 use std::error;
+use std::fs;
 use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
@@ -33,10 +34,12 @@ where
     }
 
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
+    let src_file = fs::File::open(src_image_path)?;
     // automatically transform to the specified color space
-    let decoder: codec::gif::GifDecoder<Color> = codec::gif::GifDecoder::new(src_image_path)?;
+    let decoder: codec::gif::GifDecoder<fs::File, Color> = codec::gif::GifDecoder::new(src_file)?;
     let dest_image_path = matches.get_one::<String>("output_file").unwrap();
-    let encoder = codec::gif::GifEncoder::new(dest_image_path, decoder.get_dimensions())?;
+    let dest_file = fs::File::create(dest_image_path)?;
+    let encoder = codec::gif::GifEncoder::new(dest_file, decoder.get_dimensions())?;
 
     // TODO: figure out either how to generate colors without knowing the frame count OR figure out
     // how to get the frame count while streaming the decoding process (not decoding everything at

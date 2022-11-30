@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::error;
 use std::fs::File;
+use std::io;
 use std::marker::PhantomData;
 use std::rc::Rc;
 use std::vec;
@@ -10,33 +11,22 @@ use crate::color;
 
 use palette::FromColor;
 
-pub struct GifDecoder<C> {
+pub struct GifDecoder<R: io::Read, C> {
     phantom: PhantomData<C>,
-    decoder: Rc<RefCell<gif::Decoder<File>>>,
+    decoder: Rc<RefCell<gif::Decoder<R>>>,
     screen: gif_dispose::Screen,
 }
 
-impl<C> GifDecoder<C>
+impl<R, C> GifDecoder<R, C>
 where
+    R: io::Read,
     C: color::Color,
 {
-    pub fn new<P: AsRef<std::path::Path> + std::fmt::Display>(
-        path: P,
-    ) -> Result<Self, Box<dyn error::Error>> {
+    pub fn new(read: R) -> Result<Self, Box<dyn error::Error>> {
         let mut decoder_options = gif::DecodeOptions::new();
         decoder_options.set_color_output(gif::ColorOutput::Indexed);
 
-        let img = match File::open(&path) {
-            Ok(f) => f,
-            Err(e) => {
-                return Err(Box::new(DecodeError::Init(
-                    Some(Box::new(e)),
-                    format!("Could not open {}", path),
-                )));
-            }
-        };
-
-        let decoder = match decoder_options.read_info(img) {
+        let decoder = match decoder_options.read_info(read) {
             Ok(dec) => RefCell::new(dec),
             Err(e) => {
                 return Err(Box::new(DecodeError::Read(
@@ -69,20 +59,22 @@ where
     }
 }
 
-impl<C> IntoIterator for GifDecoder<C>
+impl<C, R> IntoIterator for GifDecoder<R, C>
 where
+    R: io::Read,
     C: color::Color,
 {
     type Item = Frame<C>;
-    type IntoIter = GifDecoderImpl<C>;
+    type IntoIter = GifDecoderImpl<R, C>;
 
     fn into_iter(self) -> Self::IntoIter {
         return GifDecoderImpl { decoder: self };
     }
 }
 
-impl<C> super::Decodable for GifDecoder<C>
+impl<R, C> super::Decodable for GifDecoder<R, C>
 where
+    R: io::Read,
     C: color::Color,
 {
     type OutputColor = C;
@@ -132,12 +124,13 @@ where
     }
 }
 
-pub struct GifDecoderImpl<C> {
-    decoder: GifDecoder<C>,
+pub struct GifDecoderImpl<R: io::Read, C> {
+    decoder: GifDecoder<R, C>,
 }
 
-impl<C> Iterator for GifDecoderImpl<C>
+impl<C, R> Iterator for GifDecoderImpl<R, C>
 where
+    R: io::Read,
     C: color::Color,
 {
     type Item = Frame<C>;
@@ -173,27 +166,20 @@ where
     }
 }
 
-pub struct GifEncoder<C> {
+pub struct GifEncoder<W: io::Write, C> {
     phantom: PhantomData<C>,
-    encoder: RefCell<gif::Encoder<File>>,
+    encoder: RefCell<gif::Encoder<W>>,
     width: u16,
     height: u16,
 }
 
-impl<'a, C> GifEncoder<C>
+impl<'a, W, C> GifEncoder<W, C>
 where
+    W: io::Write,
     C: color::Color,
 {
-    pub fn new<P: AsRef<std::path::Path> + std::fmt::Display>(
-        path: P,
-        (width, height): (u16, u16),
-    ) -> Result<Self, String> {
-        let file = match File::create(&path) {
-            Ok(f) => f,
-            Err(e) => return Err(format!("{}: {}", e.to_string(), path)),
-        };
-
-        let encoder_impl = match gif::Encoder::new(file, width, height, &[]) {
+    pub fn new(w: W, (width, height): (u16, u16)) -> Result<Self, String> {
+        let encoder_impl = match gif::Encoder::new(w, width, height, &[]) {
             Ok(enc) => RefCell::new(enc),
             Err(e) => return Err(e.to_string()),
         };
@@ -243,8 +229,9 @@ where
     }
 }
 
-impl<C> super::Encodable for GifEncoder<C>
+impl<W, C> super::Encodable for GifEncoder<W, C>
 where
+    W: io::Write,
     C: color::Color,
     palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
