@@ -5,6 +5,7 @@ use std::vec;
 use clap::{arg, command, value_parser, ArgMatches};
 use palette;
 
+mod buffer;
 mod codec;
 mod color;
 
@@ -34,12 +35,14 @@ where
     }
 
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
-    let src_file = fs::File::open(src_image_path)?;
+    let src_data = buffer::Data::from_path(src_image_path)?;
     // automatically transform to the specified color space
-    let decoder: codec::gif::GifDecoder<fs::File, Color> = codec::gif::GifDecoder::new(src_file)?;
+    let decoder: codec::gif::GifDecoder<buffer::Buffer, Color> =
+        codec::gif::GifDecoder::new(src_data.buffer)?;
+
     let dest_image_path = matches.get_one::<String>("output_file").unwrap();
-    let dest_file = fs::File::create(dest_image_path)?;
-    let encoder = codec::gif::GifEncoder::new(dest_file, decoder.get_dimensions())?;
+    let mut dest_data = buffer::Data::new();
+    let encoder = codec::gif::GifEncoder::new(dest_data.buffer, decoder.get_dimensions())?;
 
     // TODO: figure out either how to generate colors without knowing the frame count OR figure out
     // how to get the frame count while streaming the decoding process (not decoding everything at
@@ -67,6 +70,9 @@ where
             interlaced: frame.interlaced,
         })?;
     }
+
+    dest_data.buffer = encoder.into_inner()?;
+    let _ = fs::write(dest_image_path, dest_data.buffer.get_ref())?;
 
     return Ok(());
 }

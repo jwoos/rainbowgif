@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::error;
-use std::fs::File;
 use std::io;
 use std::marker::PhantomData;
 use std::rc::Rc;
@@ -226,6 +225,10 @@ where
         }
 
         return Ok(());
+    }
+
+    pub fn into_inner(self) -> Result<W, io::Error> {
+        return self.encoder.into_inner().into_inner();
     }
 }
 
