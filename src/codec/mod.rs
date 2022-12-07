@@ -7,6 +7,7 @@ use crate::color;
 use ::gif as gif_lib;
 
 pub mod gif;
+pub mod image;
 
 macro_rules! define_error {
     ($x:ident, { $($y:ident : $z:literal),* $(,)? }) => {
@@ -77,7 +78,7 @@ where
 //     }
 // }
 
-pub trait Decodable: IntoIterator<Item = Frame<Self::OutputColor>>
+pub trait Decodable
 where
     <Self as Decodable>::OutputColor: color::Color,
 {
