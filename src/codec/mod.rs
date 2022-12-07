@@ -89,6 +89,8 @@ where
     fn decode_all(
         &mut self,
     ) -> Result<Option<vec::Vec<Frame<Self::OutputColor>>>, Box<dyn error::Error>>;
+
+    fn get_dimensions(&self) -> (u16, u16);
 }
 
 // can't use FromIterator as a super trait, as it requires more than just an iterator to encode all
