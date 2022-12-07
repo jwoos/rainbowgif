@@ -7,6 +7,7 @@ use crate::color;
 use ::gif as gif_lib;
 
 pub mod gif;
+pub mod image;
 
 macro_rules! define_error {
     ($x:ident, { $($y:ident : $z:literal),* $(,)? }) => {
@@ -77,7 +78,7 @@ where
 //     }
 // }
 
-pub trait Decodable: IntoIterator<Item = Frame<Self::OutputColor>>
+pub trait Decodable
 where
     <Self as Decodable>::OutputColor: color::Color,
 {
@@ -88,6 +89,8 @@ where
     fn decode_all(
         &mut self,
     ) -> Result<Option<vec::Vec<Frame<Self::OutputColor>>>, Box<dyn error::Error>>;
+
+    fn get_dimensions(&self) -> (u16, u16);
 }
 
 // can't use FromIterator as a super trait, as it requires more than just an iterator to encode all

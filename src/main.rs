@@ -1,4 +1,6 @@
+use std::cmp;
 use std::error;
+use std::fmt;
 use std::fs;
 use std::vec;
 
@@ -14,6 +16,7 @@ where
     Color: color::Color
         + color::Componentize<H, C, L, A>
         + palette::Mix<Scalar = color::ScalarType>
+        + fmt::Debug
         + Clone
         + Sized,
     palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
@@ -36,39 +39,55 @@ where
 
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
     let src_data = buffer::Data::from_path(src_image_path)?;
-    // automatically transform to the specified color space
-    let decoder: codec::gif::GifDecoder<buffer::Buffer, Color> =
-        codec::gif::GifDecoder::new(src_data.buffer)?;
+    let mut decoder: Box<dyn codec::Decodable<OutputColor = Color>> = {
+        if matches.get_flag("static") {
+            Box::new(codec::image::ImageDecoder::new(src_data.buffer, None)?)
+        } else {
+            Box::new(codec::gif::GifDecoder::new(src_data.buffer)?)
+        }
+    };
 
     let dest_image_path = matches.get_one::<String>("output_file").unwrap();
     let mut dest_data = buffer::Data::new();
     let encoder = codec::gif::GifEncoder::new(dest_data.buffer, decoder.get_dimensions())?;
 
+    let loop_count = cmp::max(
+        matches.get_one::<u64>("loop_count").unwrap().to_owned() as usize,
+        1usize,
+    );
     // TODO: figure out either how to generate colors without knowing the frame count OR figure out
     // how to get the frame count while streaming the decoding process (not decoding everything at
     // once)
-    let frames: vec::Vec<_> = Iterator::collect(decoder.into_iter());
+
+    // automatically transform to the specified color space in the decoder
+    let frames: vec::Vec<_> = decoder.decode_all()?.unwrap();
+    let frames_len = frames.len();
     let gradient_desc = color::GradientDescriptor::new(color_vec);
     let generator_type = matches
         .get_one::<color::GradientGeneratorType>("generator")
         .unwrap()
         .to_owned();
-    let colors = gradient_desc.generate(frames.len(), generator_type);
-    for (i, frame) in frames.into_iter().enumerate() {
-        let new_color = &colors[i];
+    let colors = gradient_desc.generate(frames_len * loop_count, generator_type);
 
-        let mut frame_pixels = vec::Vec::new();
-        for pixel in frame.pixels {
-            // blend
-            frame_pixels.push(color::blend_colors(&pixel, new_color));
+    for l in 0usize..loop_count {
+        for (i, frame) in frames.iter().enumerate() {
+            let new_color = &colors[i + (frames_len * l)];
+
+            let frame_pixels = frame
+                .pixels
+                .iter()
+                .map(|pixel| {
+                    return color::blend_colors(pixel, new_color);
+                })
+                .collect();
+
+            encoder.write(codec::Frame {
+                pixels: frame_pixels,
+                delay: frame.delay,
+                dispose: frame.dispose,
+                interlaced: frame.interlaced,
+            })?;
         }
-
-        encoder.write(codec::Frame {
-            pixels: frame_pixels,
-            delay: frame.delay,
-            dispose: frame.dispose,
-            interlaced: frame.interlaced,
-        })?;
     }
 
     dest_data.buffer = encoder.into_inner()?;
@@ -81,23 +100,22 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = command!()
         .arg(arg!(input_file: <INPUT_FILE> "The path to the input file"))
         .arg(arg!(output_file: <OUTPUT_FILE> "The path to the output file"))
+        .arg(arg!(static: --static "Whether the input is static or not"))
+        .arg(arg!(loop_count: --loop_count [LOOP_COUNT] "Number of times to loop for a GIF and for a static input, the resulting number of frames").value_parser(clap::value_parser!(u64).range(1..)).default_value("1"))
         .arg(
-            arg!(colors: -c --colors <COLORS> "The colors to use in the gradient")
+            arg!(colors: -c --colors [COLORS] "The colors to use in the gradient")
                 .value_delimiter(',')
                 .default_value("FF0000,00FF00,0000FF")
-                .help("The colors to use in the gradient"),
         )
         .arg(
-            arg!(generator: -g --generator <GENERATOR> "The generator to use")
+            arg!(generator: -g --generator [GENERATOR] "The type generator to use")
                 .value_parser(value_parser!(color::GradientGeneratorType))
                 .default_value("discrete")
-                .help("The type of generator to use"),
         )
         .arg(
-            arg!(color_space: -s --color_space <COLOR_SPACE> "The color space to use")
+            arg!(color_space: -s --color_space [COLOR_SPACE] "The color space to use")
                 .value_parser(value_parser!(color::ColorSpace))
                 .default_value("lch")
-                .help("The type of color space to use"),
         )
         .get_matches();
 

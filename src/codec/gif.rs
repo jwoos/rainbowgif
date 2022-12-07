@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::vec;
 
-use super::{DecodeError, EncodeError, Frame};
+use super::{Decodable, DecodeError, EncodeError, Frame};
 use crate::color;
 
 use palette::FromColor;
@@ -50,11 +50,6 @@ where
 
     pub fn get_height(&self) -> u16 {
         return self.decoder.borrow().height();
-    }
-
-    pub fn get_dimensions(&self) -> (u16, u16) {
-        let dec_ref = self.decoder.borrow();
-        return (dec_ref.width(), dec_ref.height());
     }
 }
 
@@ -117,9 +112,32 @@ where
         };
     }
 
-    // TODO
     fn decode_all(&mut self) -> Result<Option<vec::Vec<Frame<C>>>, Box<dyn error::Error>> {
+        let mut frames = vec::Vec::new();
+
+        loop {
+            let opt = match self.decode() {
+                Ok(opt) => opt,
+                Err(e) => return Err(e),
+            };
+
+            if let Some(frame) = opt {
+                frames.push(frame);
+            } else {
+                break;
+            }
+        }
+
+        if frames.len() != 0 {
+            return Ok(Some(frames));
+        }
+
         return Ok(None);
+    }
+
+    fn get_dimensions(&self) -> (u16, u16) {
+        let dec_ref = self.decoder.borrow();
+        return (dec_ref.width(), dec_ref.height());
     }
 }
 
@@ -135,32 +153,10 @@ where
     type Item = Frame<C>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(frame) = self
-            .decoder
-            .decoder
-            .borrow_mut()
-            .read_next_frame()
-            .unwrap_or(None)
-        {
-            if let Ok(_) = self.decoder.screen.blit_frame(&frame) {
-                let mut pixels = vec::Vec::new();
-                for pixel in self.decoder.screen.pixels.pixels() {
-                    pixels.push(C::from_color(color::ColorType::new(
-                        (pixel.r as color::ScalarType) / 255.,
-                        (pixel.g as color::ScalarType) / 255.,
-                        (pixel.b as color::ScalarType) / 255.,
-                        (pixel.a as color::ScalarType) / 255.,
-                    )));
-                }
-
-                return Some(Frame {
-                    pixels,
-                    delay: frame.delay,
-                    dispose: frame.dispose,
-                    interlaced: frame.interlaced,
-                });
-            }
+        if let Ok(res) = self.decoder.decode() {
+            return res;
         }
+
         return None;
     }
 }
