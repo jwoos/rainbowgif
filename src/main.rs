@@ -10,6 +10,7 @@ use palette;
 mod buffer;
 mod codec;
 mod color;
+mod commandline;
 
 fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
@@ -117,6 +118,10 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .value_parser(value_parser!(color::ColorSpace))
                 .default_value("lch")
         )
+        // .arg(
+        //     arg!(mixing_mode: -m --mixing_mode [MIXING_MODE] "What kind of mixing to use")
+        //     .value_parser
+        //     )
         .get_matches();
 
     match matches.get_one::<color::ColorSpace>("color_space").unwrap() {
