@@ -1,17 +1,17 @@
 macro_rules! define_cli_enum {
-    ($x:ident, { $($y:ident : $z:literal),* $(,)? }) => {
+    ($enum_name:ident, { $($enum_val:ident : ($enum_val_name:literal, $enum_help:literal)),* $(,)? }) => {
         #[derive(Clone, Copy)]
-        pub enum $x {
+        pub enum $enum_name {
             $(
-                $y,
+                $enum_val,
             )*
         }
 
-        impl ValueEnum for $x {
+        impl ValueEnum for $enum_name {
             fn value_variants<'a>() -> &'a [Self] {
                 return &[
                     $(
-                        Self::$y,
+                        Self::$enum_val,
                     )*
                 ];
             }
@@ -19,13 +19,13 @@ macro_rules! define_cli_enum {
             fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
                 return Some(match self {
                     $(
-                        Self::$y => PossibleValue::new(stringify!($y)).help($z),
+                        Self::$enum_val => PossibleValue::new($enum_val_name).help($enum_help),
                     )*
                 });
             }
         }
 
-        impl std::fmt::Display for $x {
+        impl std::fmt::Display for $enum_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 return self.to_possible_value()
                     .expect("no values are skipped")
@@ -34,7 +34,7 @@ macro_rules! define_cli_enum {
             }
         }
 
-        impl std::str::FromStr for $x {
+        impl std::str::FromStr for $enum_name {
             type Err = String;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -47,8 +47,7 @@ macro_rules! define_cli_enum {
                 return Err(format!("Invalid variant: {}", s));
             }
         }
-
-    }
+    };
 }
 
 pub(crate) use define_cli_enum;

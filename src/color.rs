@@ -31,17 +31,16 @@ impl<T> Color for T where
 {
 }
 
-// #[derive(Clone, Copy)]
-// pub enum MixingMode {
-//     Custom,
-//     Linear,
-//     BlendOverlay,
-// }
+commandline::define_cli_enum!(MixingMode, {
+    Custom: ("custom", "Mixes the color by taking the hue component of the other color, keeping the base luma and chroma"),
+    Linear: ("linear", "Uses palettee for linear mixing"),
+    BlendOverlay: ("blend_overlay", "Uses blending: overlay"),
+});
 
 commandline::define_cli_enum!(ColorSpace, {
-    HSL: "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom.",
-    HSV: "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness.",
-    LCH: "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects.",
+    HSL: ("hsl", "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."),
+    HSV: ("hsl", "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."),
+    LCH: ("lch", "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."),
 });
 
 pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>
@@ -109,8 +108,8 @@ pub fn blend_colors<H, C, L, A, Color: Componentize<H, C, L, A>>(
 }
 
 commandline::define_cli_enum!(GradientGeneratorType, {
-    Discrete: "Where the colors are calculated by global and local position",
-    Continuous: "where palette generates it, taking into account all colors",
+    Discrete: ("discrete", "Where the colors are calculated by global and local position"),
+    Continuous: ("continuous", "where palette generates it, taking into account all colors"),
 });
 
 struct GradientKeyFrame<'a, C>

@@ -111,17 +111,18 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         .arg(
             arg!(generator: -g --generator [GENERATOR] "The type generator to use")
                 .value_parser(value_parser!(color::GradientGeneratorType))
-                .default_value("discrete")
+                .default_value("Discrete")
         )
         .arg(
             arg!(color_space: -s --color_space [COLOR_SPACE] "The color space to use")
                 .value_parser(value_parser!(color::ColorSpace))
-                .default_value("lch")
+                .default_value("LCH")
         )
-        // .arg(
-        //     arg!(mixing_mode: -m --mixing_mode [MIXING_MODE] "What kind of mixing to use")
-        //     .value_parser
-        //     )
+        .arg(
+            arg!(mixing_mode: -m --mixing_mode [MIXING_MODE] "What kind of mixing to use")
+            .value_parser(value_parser!(color::MixingMode))
+            .default_value("Custom")
+            )
         .get_matches();
 
     match matches.get_one::<color::ColorSpace>("color_space").unwrap() {
