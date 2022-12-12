@@ -94,7 +94,13 @@ where
     palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
+    // this isn't quite right, but again linear mixing might just not be ever
     return mix_impl(matches, |a: &C, b: &C| {
+        let (_, a_alpha) = a.clone().split();
+        if a_alpha != 1.0 {
+            return a.clone();
+        }
+
         return a.mix(b, 0.5);
     });
 }
