@@ -19,6 +19,9 @@ pub trait Color:
     + palette::IntoColor<ColorType>
     + palette::convert::IntoColorUnclamped<ColorType>
     + palette::WithAlpha<ScalarType>
+    + palette::Mix<Scalar = ScalarType>
+    + Clone
+    + Sized
 {
 }
 
@@ -28,6 +31,9 @@ impl<T> Color for T where
         + palette::IntoColor<ColorType>
         + palette::convert::IntoColorUnclamped<ColorType>
         + palette::WithAlpha<ScalarType>
+        + palette::Mix<Scalar = ScalarType>
+        + Clone
+        + Sized
 {
 }
 
@@ -41,6 +47,8 @@ commandline::define_cli_enum!(ColorSpace, {
     HSL: ("hsl", "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."),
     HSV: ("hsl", "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."),
     LCH: ("lch", "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."),
+    RGB: ("rgb", "RGB"),
+    LAB: ("lab", "The CIE L*a*b* (CIELAB) color space")
 });
 
 pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>

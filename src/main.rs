@@ -15,33 +15,26 @@ mod error_utils;
 
 fn mix_custom<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
-    Color: color::Color
-        + color::Componentize<H, C, L, A>
-        + palette::Mix<Scalar = color::ScalarType>
-        + fmt::Debug
-        + Clone
-        + Sized,
+    Color: color::Color + color::Componentize<H, C, L, A> + fmt::Debug,
     palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
         palette::convert::FromColorUnclamped<
             <Color as palette::WithAlpha<color::ScalarType>>::Color,
         >,
 {
-    let color_strings = matches.get_many::<String>("colors").unwrap();
-    let mut color_vec: vec::Vec<Color> = vec::Vec::new();
-    for color_string in color_strings {
-        if color_string.len() != 6 {
-            return Err(format!("Invalid color format {}", &color_string).into());
-        }
+    return mix_impl(matches, |a, b| {
+        return color::blend_colors::<H, C, L, A, Color>(a, b);
+    });
+}
 
-        match color::from_hex(&color_string) {
-            Ok(c) => color_vec.push(c),
-            Err(e) => return Err(format!("{}: {}", e.to_string(), color_string).into()),
-        }
-    }
-
+fn mix_impl<C>(matches: ArgMatches, mix_fn: fn(&C, &C) -> C) -> Result<(), Box<dyn error::Error>>
+where
+    C: color::Color,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
+{
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
     let src_data = buffer::Data::from_path(src_image_path)?;
-    let mut decoder: Box<dyn codec::Decodable<OutputColor = Color>> = {
+    let mut decoder: Box<dyn codec::Decodable<OutputColor = C>> = {
         if matches.get_flag("static") {
             Box::new(codec::image::ImageDecoder::new(src_data.buffer, None)?)
         } else {
@@ -64,12 +57,8 @@ where
     // automatically transform to the specified color space in the decoder
     let frames: vec::Vec<_> = decoder.decode_all()?.unwrap();
     let frames_len = frames.len();
-    let gradient_desc = color::GradientDescriptor::new(color_vec);
-    let generator_type = matches
-        .get_one::<color::GradientGeneratorType>("generator")
-        .unwrap()
-        .to_owned();
-    let colors = gradient_desc.generate(frames_len * loop_count, generator_type);
+    let input_colors = commandline::get_colors::<C>(&matches)?;
+    let colors = commandline::get_gradient(&matches, input_colors, frames_len, loop_count);
 
     for l in 0usize..loop_count {
         for (i, frame) in frames.iter().enumerate() {
@@ -79,7 +68,7 @@ where
                 .pixels
                 .iter()
                 .map(|pixel| {
-                    return color::blend_colors(pixel, new_color);
+                    return mix_fn(pixel, new_color);
                 })
                 .collect();
 
@@ -103,7 +92,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         .arg(arg!(input_file: <INPUT_FILE> "The path to the input file"))
         .arg(arg!(output_file: <OUTPUT_FILE> "The path to the output file"))
         .arg(arg!(static: --static "Whether the input is static or not"))
-        .arg(arg!(loop_count: --loop_count [LOOP_COUNT] "Number of times to loop for a GIF and for a static input, the resulting number of frames").value_parser(clap::value_parser!(u64).range(1..)).default_value("1"))
+        .arg(
+            arg!(loop_count: --loop_count [LOOP_COUNT] "Number of times to loop for a GIF and for a static input, the resulting number of frames")
+                .value_parser(clap::value_parser!(u64)
+                .range(1..))
+                .default_value("1")
+        )
         .arg(
             arg!(colors: -c --colors [COLORS] "The colors to use in the gradient")
                 .value_delimiter(',')
