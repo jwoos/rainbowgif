@@ -51,3 +51,10 @@ macro_rules! define_cli_enum {
 }
 
 pub(crate) use define_cli_enum;
+
+crate::error_utils::define_error!(
+    CommandlineError, {
+        IncompatibleValue: "The given value is incompatible with the configurations",
+        NotImplemented: "The given option is not implemented",
+    }
+);

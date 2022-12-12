@@ -2,51 +2,20 @@ use std::error;
 use std::fmt;
 use std::vec;
 
-use crate::color;
+use crate::{color, error_utils};
 
 use ::gif as gif_lib;
 
 pub mod gif;
 pub mod image;
 
-macro_rules! define_error {
-    ($x:ident, { $($y:ident : $z:literal),* $(,)? }) => {
-        #[derive(Debug)]
-        pub enum $x {
-            $(
-                $y(Option<Box<dyn error::Error>>, String),
-            )*
-        }
-
-        impl fmt::Display for $x {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                return match self {
-                    $(
-                        Self::$y(_, desc) => f.write_str(format!("{}: {desc}", $z).as_str()),
-                    )*
-                };
-            }
-        }
-
-        impl error::Error for $x {
-            fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-                return match self {
-                    $(
-                        Self::$y(src, _) => src.as_ref().map(|e| e.as_ref()),
-                    )*
-                };
-            }
-        }
-    };
-}
-
-define_error!(DecodeError, {
+error_utils::define_error!(DecodeError, {
     Init: "Error initializing decoder",
     Read: "Error reading data",
     FrameRead: "Error reading frame",
 });
 
-define_error!(EncodeError, {
+error_utils::define_error!(EncodeError, {
     Init: "Error initializing encoder",
     Write: "Error write data",
     FrameWrite: "Error write frame",

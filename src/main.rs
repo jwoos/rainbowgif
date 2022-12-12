@@ -11,8 +11,9 @@ mod buffer;
 mod codec;
 mod color;
 mod commandline;
+mod error_utils;
 
-fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
+fn mix_custom<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
     Color: color::Color
         + color::Componentize<H, C, L, A>
@@ -125,27 +126,48 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             )
         .get_matches();
 
-    match matches.get_one::<color::ColorSpace>("color_space").unwrap() {
-        color::ColorSpace::HSL => main_impl::<
-            palette::RgbHue<color::ScalarType>,
-            color::ScalarType,
-            color::ScalarType,
-            color::ScalarType,
-            palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
-        >(matches),
-        color::ColorSpace::HSV => main_impl::<
-            palette::RgbHue<color::ScalarType>,
-            color::ScalarType,
-            color::ScalarType,
-            color::ScalarType,
-            palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
-        >(matches),
-        color::ColorSpace::LCH => main_impl::<
-            palette::LabHue<color::ScalarType>,
-            color::ScalarType,
-            color::ScalarType,
-            color::ScalarType,
-            palette::Lcha<palette::white_point::D65, color::ScalarType>,
-        >(matches),
+    match matches.get_one::<color::MixingMode>("mixing_mode").unwrap() {
+        color::MixingMode::Custom => {
+            match matches.get_one::<color::ColorSpace>("color_space").unwrap() {
+                color::ColorSpace::HSL => mix_custom::<
+                    palette::RgbHue<color::ScalarType>,
+                    color::ScalarType,
+                    color::ScalarType,
+                    color::ScalarType,
+                    palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
+                >(matches),
+                color::ColorSpace::HSV => mix_custom::<
+                    palette::RgbHue<color::ScalarType>,
+                    color::ScalarType,
+                    color::ScalarType,
+                    color::ScalarType,
+                    palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
+                >(matches),
+                color::ColorSpace::LCH => mix_custom::<
+                    palette::LabHue<color::ScalarType>,
+                    color::ScalarType,
+                    color::ScalarType,
+                    color::ScalarType,
+                    palette::Lcha<palette::white_point::D65, color::ScalarType>,
+                >(matches),
+
+                _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                    None,
+                    "Only HSL, HSV, and LCH are supported for custom mixing mode".to_owned(),
+                ))),
+            }
+        }
+
+        color::MixingMode::Linear => Err(Box::new(commandline::CommandlineError::NotImplemented(
+            None,
+            "Linear mixing is not implemented".to_owned(),
+        ))),
+
+        color::MixingMode::BlendOverlay => {
+            Err(Box::new(commandline::CommandlineError::NotImplemented(
+                None,
+                "Blend overlay mixing is not implemented".to_owned(),
+            )))
+        }
     }
 }
