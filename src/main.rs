@@ -75,6 +75,17 @@ where
     return Ok(());
 }
 
+fn mix_none<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
+where
+    C: color::Color,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
+{
+    return mix_impl(matches, |a: &C, b: &C| {
+        return a.clone();
+    });
+}
+
 fn mix_custom<H, C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
     C: color::Color
@@ -153,6 +164,29 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     let color_space = matches.get_one::<color::ColorSpace>("color_space").unwrap();
 
     match matches.get_one::<color::MixingMode>("mixing_mode").unwrap() {
+        color::MixingMode::None => match color_space {
+            color::ColorSpace::HSL => {
+                mix_none::<palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::HSV => {
+                mix_none::<palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::LAB => {
+                mix_none::<palette::Laba<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::LCH => {
+                mix_none::<palette::Lcha<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                None,
+                "Only HSL, HSV, LAB, and LCH are supported for custom mixing mode".to_owned(),
+            ))),
+        },
+
         color::MixingMode::Custom => match color_space {
             color::ColorSpace::HSL => mix_custom::<
                 palette::RgbHue<color::ScalarType>,

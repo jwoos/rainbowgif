@@ -38,6 +38,7 @@ impl<T> Color for T where
 }
 
 commandline::define_cli_enum!(MixingMode, {
+    None: ("none", "Doesn't actually mix and returns the original colors"),
     Custom: ("custom", "Mixes the color by taking the hue component of the other color, keeping the base luma and chroma"),
     Lab: ("lab", "Mixes the color by taking the color components of the other color, keeping the base lightness"),
     Linear: ("linear", "Uses palettee for linear mixing"),
