@@ -84,8 +84,18 @@ where
         >,
 {
     return mix_impl(matches, |a, b| {
-        return color::blend_colors::<H, C, L, A, Color>(a, b);
+        return color::blend_colors::<H, C, L, A, Color>(a, b, true);
     });
+}
+
+fn mix_lab(matches: ArgMatches) -> Result<(), Box<dyn error::Error>> {
+    return mix_impl(
+        matches,
+        |a: &palette::Laba<palette::white_point::D65, f64>,
+         b: &palette::Laba<palette::white_point::D65, f64>| {
+            return palette::Laba::from_components((a.l, b.a, b.b, a.alpha));
+        },
+    );
 }
 
 fn mix_linear<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
@@ -97,11 +107,11 @@ where
     // this isn't quite right, but again linear mixing might just not be ever
     return mix_impl(matches, |a: &C, b: &C| {
         let (_, a_alpha) = a.clone().split();
-        if a_alpha != 1.0 {
+        if a_alpha <= 0.5 {
             return a.clone();
         }
 
-        return a.mix(b, 0.5);
+        return a.mix(b, 0.2);
     });
 }
 
@@ -170,9 +180,37 @@ fn main() -> Result<(), Box<dyn error::Error>> {
             ))),
         },
 
-        color::MixingMode::Linear => {
-            mix_linear::<palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>>(matches)
-        }
+        color::MixingMode::Lab => match color_space {
+            color::ColorSpace::LAB => mix_lab(matches),
+
+            _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                None,
+                "Only LAB is supported for lab mixing mode".to_owned(),
+            ))),
+        },
+
+        color::MixingMode::Linear => match color_space {
+            color::ColorSpace::HSL => mix_linear::<
+                palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
+            >(matches),
+
+            color::ColorSpace::HSV => mix_linear::<
+                palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
+            >(matches),
+
+            color::ColorSpace::LAB => {
+                mix_linear::<palette::Laba<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::LCH => {
+                mix_linear::<palette::Lcha<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                None,
+                "Only HSL, HSV, LAB, and LCH are supported for custom mixing mode".to_owned(),
+            ))),
+        },
 
         color::MixingMode::BlendOverlay => {
             Err(Box::new(commandline::CommandlineError::NotImplemented(

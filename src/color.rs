@@ -9,7 +9,7 @@ use crate::commandline;
 pub type ScalarType = f64;
 
 // TODO look into using linear
-// pub type ColorType = palette::rgb::LibSrgba<ScalarType>;
+// pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
 
 pub type ColorType = palette::rgb::Srgba<ScalarType>;
 
@@ -39,13 +39,14 @@ impl<T> Color for T where
 
 commandline::define_cli_enum!(MixingMode, {
     Custom: ("custom", "Mixes the color by taking the hue component of the other color, keeping the base luma and chroma"),
+    Lab: ("lab", "Mixes the color by taking the color components of the other color, keeping the base lightness"),
     Linear: ("linear", "Uses palettee for linear mixing"),
     BlendOverlay: ("blend_overlay", "Uses blending: overlay"),
 });
 
 commandline::define_cli_enum!(ColorSpace, {
     HSL: ("hsl", "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."),
-    HSV: ("hsl", "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."),
+    HSV: ("hsv", "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."),
     LCH: ("lch", "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."),
     RGB: ("rgb", "RGB"),
     LAB: ("lab", "The CIE L*a*b* (CIELAB) color space")
@@ -108,11 +109,19 @@ impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
 pub fn blend_colors<H, C, L, A, Color: Componentize<H, C, L, A>>(
     bottom: &Color,
     top: &Color,
+    include_chroma: bool,
 ) -> Color {
-    let (top_h, _, _, _) = top.get_components();
-    let (_, bottom_c, bottom_l, bottom_a) = bottom.get_components();
+    if include_chroma {
+        let (top_h, top_c, _, _) = top.get_components();
+        let (_, _, bottom_l, bottom_a) = bottom.get_components();
 
-    return Color::from_components(top_h, bottom_c, bottom_l, bottom_a);
+        return Color::from_components(top_h, top_c, bottom_l, bottom_a);
+    } else {
+        let (top_h, _, _, _) = top.get_components();
+        let (_, bottom_c, bottom_l, bottom_a) = bottom.get_components();
+
+        return Color::from_components(top_h, bottom_c, bottom_l, bottom_a);
+    }
 }
 
 commandline::define_cli_enum!(GradientGeneratorType, {

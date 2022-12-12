@@ -95,14 +95,14 @@ where
     return Ok(color_vec);
 }
 
-pub fn get_gradient<Color>(
+pub fn get_gradient<C>(
     matches: &clap::ArgMatches,
-    colors: vec::Vec<Color>,
+    colors: vec::Vec<C>,
     frames_len: usize,
     loop_count: usize,
-) -> vec::Vec<Color>
+) -> vec::Vec<C>
 where
-    Color: color::Color + palette::Mix<Scalar = color::ScalarType> + Clone,
+    C: color::Color + palette::Mix<Scalar = color::ScalarType> + Clone,
 {
     let gradient_desc = color::GradientDescriptor::new(colors);
     let generator_type = matches
