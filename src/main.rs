@@ -6,40 +6,23 @@ use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
 use palette;
+use palette::WithAlpha;
 
 mod buffer;
 mod codec;
 mod color;
+mod commandline;
+mod error_utils;
 
-fn main_impl<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
+fn mix_impl<C>(matches: ArgMatches, mix_fn: fn(&C, &C) -> C) -> Result<(), Box<dyn error::Error>>
 where
-    Color: color::Color
-        + color::Componentize<H, C, L, A>
-        + palette::Mix<Scalar = color::ScalarType>
-        + fmt::Debug
-        + Clone
-        + Sized,
+    C: color::Color,
     palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
-        palette::convert::FromColorUnclamped<
-            <Color as palette::WithAlpha<color::ScalarType>>::Color,
-        >,
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
-    let color_strings = matches.get_many::<String>("colors").unwrap();
-    let mut color_vec: vec::Vec<Color> = vec::Vec::new();
-    for color_string in color_strings {
-        if color_string.len() != 6 {
-            return Err(format!("Invalid color format {}", &color_string).into());
-        }
-
-        match color::from_hex(&color_string) {
-            Ok(c) => color_vec.push(c),
-            Err(e) => return Err(format!("{}: {}", e.to_string(), color_string).into()),
-        }
-    }
-
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
     let src_data = buffer::Data::from_path(src_image_path)?;
-    let mut decoder: Box<dyn codec::Decodable<OutputColor = Color>> = {
+    let mut decoder: Box<dyn codec::Decodable<OutputColor = C>> = {
         if matches.get_flag("static") {
             Box::new(codec::image::ImageDecoder::new(src_data.buffer, None)?)
         } else {
@@ -62,12 +45,8 @@ where
     // automatically transform to the specified color space in the decoder
     let frames: vec::Vec<_> = decoder.decode_all()?.unwrap();
     let frames_len = frames.len();
-    let gradient_desc = color::GradientDescriptor::new(color_vec);
-    let generator_type = matches
-        .get_one::<color::GradientGeneratorType>("generator")
-        .unwrap()
-        .to_owned();
-    let colors = gradient_desc.generate(frames_len * loop_count, generator_type);
+    let input_colors = commandline::get_colors::<C>(&matches)?;
+    let colors = commandline::get_gradient(&matches, input_colors, frames_len, loop_count);
 
     for l in 0usize..loop_count {
         for (i, frame) in frames.iter().enumerate() {
@@ -77,7 +56,7 @@ where
                 .pixels
                 .iter()
                 .map(|pixel| {
-                    return color::blend_colors(pixel, new_color);
+                    return mix_fn(pixel, new_color);
                 })
                 .collect();
 
@@ -96,12 +75,70 @@ where
     return Ok(());
 }
 
+fn mix_none<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
+where
+    C: color::Color,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
+{
+    return mix_impl(matches, |a: &C, b: &C| {
+        return a.clone();
+    });
+}
+
+fn mix_custom<H, C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
+where
+    C: color::Color
+        + color::Componentize<H, color::ScalarType, color::ScalarType, color::ScalarType>
+        + fmt::Debug,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
+{
+    return mix_impl(matches, |a, b| {
+        return color::blend_colors::<H, color::ScalarType, color::ScalarType, color::ScalarType, C>(
+            a, b, true,
+        );
+    });
+}
+
+fn mix_lab(matches: ArgMatches) -> Result<(), Box<dyn error::Error>> {
+    return mix_impl(
+        matches,
+        |a: &palette::Laba<palette::white_point::D65, f64>,
+         b: &palette::Laba<palette::white_point::D65, f64>| {
+            return palette::Laba::from_components((a.l, b.a, b.b, a.alpha));
+        },
+    );
+}
+
+fn mix_linear<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
+where
+    C: color::Color,
+    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
+{
+    // this isn't quite right, but again linear mixing might just not be ever
+    return mix_impl(matches, |a: &C, b: &C| {
+        let (_, a_alpha) = a.clone().split();
+        if a_alpha <= 0.5 {
+            return a.clone();
+        }
+
+        return a.mix(b, 0.2);
+    });
+}
+
 fn main() -> Result<(), Box<dyn error::Error>> {
     let matches = command!()
         .arg(arg!(input_file: <INPUT_FILE> "The path to the input file"))
         .arg(arg!(output_file: <OUTPUT_FILE> "The path to the output file"))
         .arg(arg!(static: --static "Whether the input is static or not"))
-        .arg(arg!(loop_count: --loop_count [LOOP_COUNT] "Number of times to loop for a GIF and for a static input, the resulting number of frames").value_parser(clap::value_parser!(u64).range(1..)).default_value("1"))
+        .arg(
+            arg!(loop_count: --loop_count [LOOP_COUNT] "Number of times to loop for a GIF and for a static input, the resulting number of frames")
+                .value_parser(clap::value_parser!(u64)
+                .range(1..))
+                .default_value("1")
+        )
         .arg(
             arg!(colors: -c --colors [COLORS] "The colors to use in the gradient")
                 .value_delimiter(',')
@@ -117,29 +154,96 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 .value_parser(value_parser!(color::ColorSpace))
                 .default_value("lch")
         )
+        .arg(
+            arg!(mixing_mode: -m --mixing_mode [MIXING_MODE] "What kind of mixing to use")
+            .value_parser(value_parser!(color::MixingMode))
+            .default_value("custom")
+            )
         .get_matches();
 
-    match matches.get_one::<color::ColorSpace>("color_space").unwrap() {
-        color::ColorSpace::HSL => main_impl::<
-            palette::RgbHue<color::ScalarType>,
-            color::ScalarType,
-            color::ScalarType,
-            color::ScalarType,
-            palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
-        >(matches),
-        color::ColorSpace::HSV => main_impl::<
-            palette::RgbHue<color::ScalarType>,
-            color::ScalarType,
-            color::ScalarType,
-            color::ScalarType,
-            palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
-        >(matches),
-        color::ColorSpace::LCH => main_impl::<
-            palette::LabHue<color::ScalarType>,
-            color::ScalarType,
-            color::ScalarType,
-            color::ScalarType,
-            palette::Lcha<palette::white_point::D65, color::ScalarType>,
-        >(matches),
+    let color_space = matches.get_one::<color::ColorSpace>("color_space").unwrap();
+
+    match matches.get_one::<color::MixingMode>("mixing_mode").unwrap() {
+        color::MixingMode::None => match color_space {
+            color::ColorSpace::HSL => {
+                mix_none::<palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::HSV => {
+                mix_none::<palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::LAB => {
+                mix_none::<palette::Laba<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::LCH => {
+                mix_none::<palette::Lcha<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                None,
+                "Only HSL, HSV, LAB, and LCH are supported for custom mixing mode".to_owned(),
+            ))),
+        },
+
+        color::MixingMode::Custom => match color_space {
+            color::ColorSpace::HSL => mix_custom::<
+                palette::RgbHue<color::ScalarType>,
+                palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
+            >(matches),
+            color::ColorSpace::HSV => mix_custom::<
+                palette::RgbHue<color::ScalarType>,
+                palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
+            >(matches),
+            color::ColorSpace::LCH => mix_custom::<
+                palette::LabHue<color::ScalarType>,
+                palette::Lcha<palette::white_point::D65, color::ScalarType>,
+            >(matches),
+
+            _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                None,
+                "Only HSL, HSV, and LCH are supported for custom mixing mode".to_owned(),
+            ))),
+        },
+
+        color::MixingMode::Lab => match color_space {
+            color::ColorSpace::LAB => mix_lab(matches),
+
+            _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                None,
+                "Only LAB is supported for lab mixing mode".to_owned(),
+            ))),
+        },
+
+        color::MixingMode::Linear => match color_space {
+            color::ColorSpace::HSL => mix_linear::<
+                palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
+            >(matches),
+
+            color::ColorSpace::HSV => mix_linear::<
+                palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
+            >(matches),
+
+            color::ColorSpace::LAB => {
+                mix_linear::<palette::Laba<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            color::ColorSpace::LCH => {
+                mix_linear::<palette::Lcha<palette::white_point::D65, color::ScalarType>>(matches)
+            }
+
+            _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
+                None,
+                "Only HSL, HSV, LAB, and LCH are supported for custom mixing mode".to_owned(),
+            ))),
+        },
+
+        color::MixingMode::BlendOverlay => {
+            Err(Box::new(commandline::CommandlineError::NotImplemented(
+                None,
+                "Blend overlay mixing is not implemented".to_owned(),
+            )))
+        }
     }
 }

@@ -4,10 +4,12 @@ use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
 use palette::{encoding, white_point, FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
 
+use crate::commandline;
+
 pub type ScalarType = f64;
 
 // TODO look into using linear
-// pub type ColorType = palette::rgb::LibSrgba<ScalarType>;
+// pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
 
 pub type ColorType = palette::rgb::Srgba<ScalarType>;
 
@@ -17,6 +19,9 @@ pub trait Color:
     + palette::IntoColor<ColorType>
     + palette::convert::IntoColorUnclamped<ColorType>
     + palette::WithAlpha<ScalarType>
+    + palette::Mix<Scalar = ScalarType>
+    + Clone
+    + Sized
 {
 }
 
@@ -26,53 +31,27 @@ impl<T> Color for T where
         + palette::IntoColor<ColorType>
         + palette::convert::IntoColorUnclamped<ColorType>
         + palette::WithAlpha<ScalarType>
+        + palette::Mix<Scalar = ScalarType>
+        + Clone
+        + Sized
 {
 }
 
-#[derive(Clone, Copy)]
-pub enum ColorSpace {
-    HSL,
-    HSV,
-    LCH,
-}
+commandline::define_cli_enum!(MixingMode, {
+    None: ("none", "Doesn't actually mix and returns the original colors"),
+    Custom: ("custom", "Mixes the color by taking the hue component of the other color, keeping the base luma and chroma"),
+    Lab: ("lab", "Mixes the color by taking the color components of the other color, keeping the base lightness"),
+    Linear: ("linear", "Uses palettee for linear mixing"),
+    BlendOverlay: ("blend_overlay", "Uses blending: overlay"),
+});
 
-impl ValueEnum for ColorSpace {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[ColorSpace::HSL, ColorSpace::HSV, ColorSpace::LCH]
-    }
-
-    fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
-        Some(match self {
-            ColorSpace::HSL => PossibleValue::new("hsl").help("HSL"),
-            ColorSpace::HSV => PossibleValue::new("hsv").help("HSV"),
-            ColorSpace::LCH => {
-                PossibleValue::new("lch").help("CIE L*C*h°, a polar version of CIE L*a*b*")
-            }
-        })
-    }
-}
-
-impl std::fmt::Display for ColorSpace {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.to_possible_value()
-            .expect("no values are skipped")
-            .get_name()
-            .fmt(f)
-    }
-}
-
-impl std::str::FromStr for ColorSpace {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        for variant in Self::value_variants() {
-            if variant.to_possible_value().unwrap().matches(s, false) {
-                return Ok(*variant);
-            }
-        }
-        Err(format!("Invalid variant: {}", s))
-    }
-}
+commandline::define_cli_enum!(ColorSpace, {
+    HSL: ("hsl", "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."),
+    HSV: ("hsv", "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."),
+    LCH: ("lch", "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."),
+    RGB: ("rgb", "RGB"),
+    LAB: ("lab", "The CIE L*a*b* (CIELAB) color space")
+});
 
 pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>
 where
@@ -131,60 +110,25 @@ impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
 pub fn blend_colors<H, C, L, A, Color: Componentize<H, C, L, A>>(
     bottom: &Color,
     top: &Color,
+    include_chroma: bool,
 ) -> Color {
-    let (top_h, _, _, _) = top.get_components();
-    let (_, bottom_c, bottom_l, bottom_a) = bottom.get_components();
+    if include_chroma {
+        let (top_h, top_c, _, _) = top.get_components();
+        let (_, _, bottom_l, bottom_a) = bottom.get_components();
 
-    return Color::from_components(top_h, bottom_c, bottom_l, bottom_a);
-}
+        return Color::from_components(top_h, top_c, bottom_l, bottom_a);
+    } else {
+        let (top_h, _, _, _) = top.get_components();
+        let (_, bottom_c, bottom_l, bottom_a) = bottom.get_components();
 
-#[derive(Clone, Copy)]
-pub enum GradientGeneratorType {
-    // where the colors are calculated by global and local position
-    Discrete,
-    // where palette generates it, taking into account all colors
-    Continuous,
-}
-
-impl ValueEnum for GradientGeneratorType {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[
-            GradientGeneratorType::Discrete,
-            GradientGeneratorType::Continuous,
-        ]
-    }
-
-    fn to_possible_value<'a>(&self) -> Option<PossibleValue> {
-        Some(match self {
-            GradientGeneratorType::Discrete => PossibleValue::new("discrete")
-                .help("Colors are calculated by global and local position"),
-            GradientGeneratorType::Continuous => PossibleValue::new("continuous")
-                .help("Palette generates the gradient, taking into account all of the colors"),
-        })
+        return Color::from_components(top_h, bottom_c, bottom_l, bottom_a);
     }
 }
 
-impl std::fmt::Display for GradientGeneratorType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.to_possible_value()
-            .expect("no values are skipped")
-            .get_name()
-            .fmt(f)
-    }
-}
-
-impl std::str::FromStr for GradientGeneratorType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        for variant in Self::value_variants() {
-            if variant.to_possible_value().unwrap().matches(s, false) {
-                return Ok(*variant);
-            }
-        }
-        Err(format!("Invalid variant: {}", s))
-    }
-}
+commandline::define_cli_enum!(GradientGeneratorType, {
+    Discrete: ("discrete", "Where the colors are calculated by global and local position"),
+    Continuous: ("continuous", "where palette generates it, taking into account all colors"),
+});
 
 struct GradientKeyFrame<'a, C>
 where
