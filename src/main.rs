@@ -75,16 +75,18 @@ where
     return Ok(());
 }
 
-fn mix_custom<H, C, L, A, Color>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
+fn mix_custom<H, C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
-    Color: color::Color + color::Componentize<H, C, L, A> + fmt::Debug,
+    C: color::Color
+        + color::Componentize<H, color::ScalarType, color::ScalarType, color::ScalarType>
+        + fmt::Debug,
     palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
-        palette::convert::FromColorUnclamped<
-            <Color as palette::WithAlpha<color::ScalarType>>::Color,
-        >,
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     return mix_impl(matches, |a, b| {
-        return color::blend_colors::<H, C, L, A, Color>(a, b, true);
+        return color::blend_colors::<H, color::ScalarType, color::ScalarType, color::ScalarType, C>(
+            a, b, true,
+        );
     });
 }
 
@@ -154,23 +156,14 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         color::MixingMode::Custom => match color_space {
             color::ColorSpace::HSL => mix_custom::<
                 palette::RgbHue<color::ScalarType>,
-                color::ScalarType,
-                color::ScalarType,
-                color::ScalarType,
                 palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
             >(matches),
             color::ColorSpace::HSV => mix_custom::<
                 palette::RgbHue<color::ScalarType>,
-                color::ScalarType,
-                color::ScalarType,
-                color::ScalarType,
                 palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
             >(matches),
             color::ColorSpace::LCH => mix_custom::<
                 palette::LabHue<color::ScalarType>,
-                color::ScalarType,
-                color::ScalarType,
-                color::ScalarType,
                 palette::Lcha<palette::white_point::D65, color::ScalarType>,
             >(matches),
 
