@@ -194,7 +194,7 @@ where
     pub fn write(&self, frame: Frame<C>) -> Result<(), Box<dyn error::Error>>
     where
         C: color::Color,
-        palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+        palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
             palette::convert::FromColorUnclamped<
                 <C as palette::WithAlpha<color::ScalarType>>::Color,
             >,
@@ -232,7 +232,7 @@ impl<W, C> super::Encodable for GifEncoder<W, C>
 where
     W: io::Write,
     C: color::Color,
-    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+    palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     type InputColor = C;

@@ -17,7 +17,7 @@ mod error_utils;
 fn mix_impl<C>(matches: ArgMatches, mix_fn: fn(&C, &C) -> C) -> Result<(), Box<dyn error::Error>>
 where
     C: color::Color,
-    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+    palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     let src_image_path = matches.get_one::<String>("input_file").unwrap();
@@ -78,10 +78,10 @@ where
 fn mix_none<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
     C: color::Color,
-    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+    palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
-    return mix_impl(matches, |a: &C, b: &C| {
+    return mix_impl(matches, |a: &C, _: &C| {
         return a.clone();
     });
 }
@@ -91,7 +91,7 @@ where
     C: color::Color
         + color::Componentize<H, color::ScalarType, color::ScalarType, color::ScalarType>
         + fmt::Debug,
-    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+    palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     return mix_impl(matches, |a, b| {
@@ -104,8 +104,7 @@ where
 fn mix_lab(matches: ArgMatches) -> Result<(), Box<dyn error::Error>> {
     return mix_impl(
         matches,
-        |a: &palette::Laba<palette::white_point::D65, f64>,
-         b: &palette::Laba<palette::white_point::D65, f64>| {
+        |a: &palette::Laba<color::WhitePoint, f64>, b: &palette::Laba<color::WhitePoint, f64>| {
             return palette::Laba::from_components((a.l, b.a, b.b, a.alpha));
         },
     );
@@ -114,7 +113,7 @@ fn mix_lab(matches: ArgMatches) -> Result<(), Box<dyn error::Error>> {
 fn mix_linear<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
     C: color::Color,
-    palette::rgb::Rgb<palette::encoding::Srgb, color::ScalarType>:
+    palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     // this isn't quite right, but again linear mixing might just not be ever
@@ -166,19 +165,19 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     match matches.get_one::<color::MixingMode>("mixing_mode").unwrap() {
         color::MixingMode::None => match color_space {
             color::ColorSpace::HSL => {
-                mix_none::<palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>>(matches)
+                mix_none::<palette::Hsla<color::EncodingType, color::ScalarType>>(matches)
             }
 
             color::ColorSpace::HSV => {
-                mix_none::<palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>>(matches)
+                mix_none::<palette::Hsva<color::EncodingType, color::ScalarType>>(matches)
             }
 
             color::ColorSpace::LAB => {
-                mix_none::<palette::Laba<palette::white_point::D65, color::ScalarType>>(matches)
+                mix_none::<palette::Laba<color::WhitePoint, color::ScalarType>>(matches)
             }
 
             color::ColorSpace::LCH => {
-                mix_none::<palette::Lcha<palette::white_point::D65, color::ScalarType>>(matches)
+                mix_none::<palette::Lcha<color::WhitePoint, color::ScalarType>>(matches)
             }
 
             _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
@@ -190,15 +189,15 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         color::MixingMode::Custom => match color_space {
             color::ColorSpace::HSL => mix_custom::<
                 palette::RgbHue<color::ScalarType>,
-                palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
+                palette::Hsla<color::EncodingType, color::ScalarType>,
             >(matches),
             color::ColorSpace::HSV => mix_custom::<
                 palette::RgbHue<color::ScalarType>,
-                palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
+                palette::Hsva<color::EncodingType, color::ScalarType>,
             >(matches),
             color::ColorSpace::LCH => mix_custom::<
                 palette::LabHue<color::ScalarType>,
-                palette::Lcha<palette::white_point::D65, color::ScalarType>,
+                palette::Lcha<color::WhitePoint, color::ScalarType>,
             >(matches),
 
             _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(
@@ -217,20 +216,20 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         },
 
         color::MixingMode::Linear => match color_space {
-            color::ColorSpace::HSL => mix_linear::<
-                palette::Hsla<palette::encoding::srgb::Srgb, color::ScalarType>,
-            >(matches),
+            color::ColorSpace::HSL => {
+                mix_linear::<palette::Hsla<color::EncodingType, color::ScalarType>>(matches)
+            }
 
-            color::ColorSpace::HSV => mix_linear::<
-                palette::Hsva<palette::encoding::srgb::Srgb, color::ScalarType>,
-            >(matches),
+            color::ColorSpace::HSV => {
+                mix_linear::<palette::Hsva<color::EncodingType, color::ScalarType>>(matches)
+            }
 
             color::ColorSpace::LAB => {
-                mix_linear::<palette::Laba<palette::white_point::D65, color::ScalarType>>(matches)
+                mix_linear::<palette::Laba<color::WhitePoint, color::ScalarType>>(matches)
             }
 
             color::ColorSpace::LCH => {
-                mix_linear::<palette::Lcha<palette::white_point::D65, color::ScalarType>>(matches)
+                mix_linear::<palette::Lcha<color::WhitePoint, color::ScalarType>>(matches)
             }
 
             _ => Err(Box::new(commandline::CommandlineError::IncompatibleValue(

@@ -2,16 +2,21 @@ use std::vec;
 
 use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
-use palette::{encoding, white_point, FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
+use palette::{FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
 
 use crate::commandline;
 
 pub type ScalarType = f64;
 
-// TODO look into using linear
-// pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
+// pub type ColorType = palette::rgb::GammaSrgba<ScalarType>;
+pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
+// pub type ColorType = palette::rgb::Srgba<ScalarType>;
 
-pub type ColorType = palette::rgb::Srgba<ScalarType>;
+// pub type EncodingType = palette::encoding::Gamma<palette::encoding::Srgb>;
+pub type EncodingType = palette::encoding::linear::Linear<palette::encoding::Srgb>;
+// pub type EncodingType = palette::encoding::Srgb;
+
+pub type WhitePoint = palette::white_point::D65;
 
 pub trait Color:
     palette::FromColor<ColorType>
@@ -71,7 +76,7 @@ pub trait Componentize<H, C, L, A> {
 }
 
 impl Componentize<LabHue<ScalarType>, ScalarType, ScalarType, ScalarType>
-    for Lcha<white_point::D65, ScalarType>
+    for Lcha<WhitePoint, ScalarType>
 {
     fn get_components(&self) -> (LabHue<ScalarType>, ScalarType, ScalarType, ScalarType) {
         let (l, c, h, a) = self.into_components();
@@ -84,7 +89,7 @@ impl Componentize<LabHue<ScalarType>, ScalarType, ScalarType, ScalarType>
 }
 
 impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
-    for Hsla<encoding::Srgb, ScalarType>
+    for Hsla<EncodingType, ScalarType>
 {
     fn get_components(&self) -> (RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType) {
         return self.into_components();
@@ -96,7 +101,7 @@ impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
 }
 
 impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
-    for Hsva<encoding::Srgb, ScalarType>
+    for Hsva<EncodingType, ScalarType>
 {
     fn get_components(&self) -> (RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType) {
         return self.into_components();
