@@ -102,14 +102,23 @@ pub fn get_gradient<C>(
 where
     C: color::Color + palette::Mix<Scalar = color::ScalarType> + Clone,
 {
-    // let gradient_desc = color::GradientDescriptor::new(colors);
-    // let generator_type = matches
-    //     .get_one::<color::GradientGeneratorType>("generator")
-    //     .unwrap()
-    //     .to_owned();
-    // return gradient_desc.generate(frames_len * loop_count, generator_type);
+    let gradient_desc = color::GradientDescriptor::new(colors);
+    let generator_type = matches
+        .get_one::<color::GradientGeneratorType>("generator")
+        .unwrap()
+        .to_owned();
+    return gradient_desc.generate(frames_len * loop_count, generator_type);
+}
 
-    // TODO revert this
+pub fn get_gradient_2<C>(
+    matches: &clap::ArgMatches,
+    colors: vec::Vec<C>,
+    frames_len: usize,
+    loop_count: usize,
+) -> vec::Vec<C>
+where
+    C: color::Color + palette::Mix<Scalar = color::ScalarType> + Clone,
+{
     // hard coded gradient from the go version for fidget spinner
     return vec![
         C::from_color(color::ColorType::new(

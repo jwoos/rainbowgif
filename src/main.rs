@@ -47,7 +47,7 @@ where
     let frames = decoder.decode_all()?.unwrap();
     let frames_len = frames.len();
     let input_colors = commandline::get_colors::<C>(&matches)?;
-    let colors = commandline::get_gradient(&matches, input_colors, frames_len, loop_count);
+    let colors = commandline::get_gradient_2(&matches, input_colors, frames_len, loop_count);
 
     // let rgba_colors: vec::Vec<color::ColorType> = colors.iter().map(|e| color::ColorType::from_color(e.clone())).collect();
     // println!("{:#?}", rgba_colors[20]);
