@@ -8,12 +8,13 @@ use crate::commandline;
 
 pub type ScalarType = f64;
 
-// TODO look into using linear
-// pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
+// pub type ColorType = palette::rgb::GammaSrgba<ScalarType>;
+pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
+// pub type ColorType = palette::rgb::Srgba<ScalarType>;
 
-pub type ColorType = palette::rgb::Srgba<ScalarType>;
-
-pub type EncodingType = palette::encoding::Srgb;
+// pub type EncodingType = palette::encoding::Gamma<palette::encoding::Srgb>;
+pub type EncodingType = palette::encoding::linear::Linear<palette::encoding::Srgb>;
+// pub type EncodingType = palette::encoding::Srgb;
 
 pub type WhitePoint = palette::white_point::D65;
 
