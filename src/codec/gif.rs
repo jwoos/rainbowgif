@@ -105,6 +105,7 @@ where
                     interlaced: frame.interlaced,
                 }))
             }
+
             Err(e) => Err(Box::new(DecodeError::FrameRead(
                 Some(Box::new(e)),
                 "Could not blit frame".to_owned(),

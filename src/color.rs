@@ -6,15 +6,18 @@ use palette::{FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
 
 use crate::commandline;
 
-pub type ScalarType = f64;
+pub type ScalarType = f32;
+// TODO put behind a feature
+// pub type ScalarType = f64;
 
+// TODO put behind a feature
 // pub type ColorType = palette::rgb::GammaSrgba<ScalarType>;
-pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
-// pub type ColorType = palette::rgb::Srgba<ScalarType>;
+// pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
+pub type ColorType = palette::rgb::Srgba<ScalarType>;
 
 // pub type EncodingType = palette::encoding::Gamma<palette::encoding::Srgb>;
-pub type EncodingType = palette::encoding::linear::Linear<palette::encoding::Srgb>;
-// pub type EncodingType = palette::encoding::Srgb;
+// pub type EncodingType = palette::encoding::linear::Linear<palette::encoding::Srgb>;
+pub type EncodingType = palette::encoding::Srgb;
 
 pub type WhitePoint = palette::white_point::D65;
 
@@ -51,11 +54,26 @@ commandline::define_cli_enum!(MixingMode, {
 });
 
 commandline::define_cli_enum!(ColorSpace, {
-    HSL: ("hsl", "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."),
-    HSV: ("hsv", "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."),
-    LCH: ("lch", "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."),
-    RGB: ("rgb", "RGB"),
-    LAB: ("lab", "The CIE L*a*b* (CIELAB) color space")
+    HSL: (
+        "hsl",
+        "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."
+    ),
+    HSV: (
+        "hsv",
+        "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."
+    ),
+    LCH: (
+        "lch",
+        "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."
+    ),
+    RGB: (
+        "rgb",
+        "RGB"
+    ),
+    LAB: (
+        "lab",
+        "The CIE L*a*b* (CIELAB) color space"
+    )
 });
 
 pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>
@@ -66,7 +84,9 @@ where
     let g = u8::from_str_radix(&color_string[2..4], 16)? as ScalarType;
     let b = u8::from_str_radix(&color_string[4..6], 16)? as ScalarType;
 
-    return Ok(C::from_color(ColorType::new(r, g, b, 255.0)));
+    // expects values in (0, 1)
+    let temp_color = ColorType::new(r / 255.0, g / 255.0, b / 255.0, 1.0);
+    return Ok(C::from_color(temp_color));
 }
 
 pub trait Componentize<H, C, L, A> {

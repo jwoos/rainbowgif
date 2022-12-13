@@ -6,8 +6,9 @@ use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
 use palette;
-use palette::WithAlpha;
+use palette::{Clamp, FromColor};
 
+// TODO just use library
 mod buffer;
 mod codec;
 mod color;
@@ -16,7 +17,7 @@ mod error_utils;
 
 fn mix_impl<C>(matches: ArgMatches, mix_fn: fn(&C, &C) -> C) -> Result<(), Box<dyn error::Error>>
 where
-    C: color::Color,
+    C: color::Color + palette::Clamp + fmt::Debug,
     palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
@@ -43,10 +44,13 @@ where
     // once)
 
     // automatically transform to the specified color space in the decoder
-    let frames: vec::Vec<_> = decoder.decode_all()?.unwrap();
+    let frames = decoder.decode_all()?.unwrap();
     let frames_len = frames.len();
     let input_colors = commandline::get_colors::<C>(&matches)?;
     let colors = commandline::get_gradient(&matches, input_colors, frames_len, loop_count);
+
+    // let rgba_colors: vec::Vec<color::ColorType> = colors.iter().map(|e| color::ColorType::from_color(e.clone())).collect();
+    // println!("{:#?}", rgba_colors[20]);
 
     for l in 0usize..loop_count {
         for (i, frame) in frames.iter().enumerate() {
@@ -77,7 +81,7 @@ where
 
 fn mix_none<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
-    C: color::Color,
+    C: color::Color + palette::Clamp + fmt::Debug,
     palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
@@ -89,6 +93,7 @@ where
 fn mix_custom<H, C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
     C: color::Color
+        + palette::Clamp
         + color::Componentize<H, color::ScalarType, color::ScalarType, color::ScalarType>
         + fmt::Debug,
     palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
@@ -104,7 +109,8 @@ where
 fn mix_lab(matches: ArgMatches) -> Result<(), Box<dyn error::Error>> {
     return mix_impl(
         matches,
-        |a: &palette::Laba<color::WhitePoint, f64>, b: &palette::Laba<color::WhitePoint, f64>| {
+        |a: &palette::Laba<color::WhitePoint, color::ScalarType>,
+         b: &palette::Laba<color::WhitePoint, color::ScalarType>| {
             return palette::Laba::from_components((a.l, b.a, b.b, a.alpha));
         },
     );
@@ -112,7 +118,7 @@ fn mix_lab(matches: ArgMatches) -> Result<(), Box<dyn error::Error>> {
 
 fn mix_linear<C>(matches: ArgMatches) -> Result<(), Box<dyn error::Error>>
 where
-    C: color::Color,
+    C: color::Color + palette::Clamp + fmt::Debug,
     palette::rgb::Rgb<color::EncodingType, color::ScalarType>:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
@@ -191,10 +197,12 @@ fn main() -> Result<(), Box<dyn error::Error>> {
                 palette::RgbHue<color::ScalarType>,
                 palette::Hsla<color::EncodingType, color::ScalarType>,
             >(matches),
+
             color::ColorSpace::HSV => mix_custom::<
                 palette::RgbHue<color::ScalarType>,
                 palette::Hsva<color::EncodingType, color::ScalarType>,
             >(matches),
+
             color::ColorSpace::LCH => mix_custom::<
                 palette::LabHue<color::ScalarType>,
                 palette::Lcha<color::WhitePoint, color::ScalarType>,
