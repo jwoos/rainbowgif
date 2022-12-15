@@ -200,8 +200,9 @@ impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
     fn generate_discrete(&self, frame_count: usize) -> vec::Vec<C> {
         let mut gen = vec::Vec::<C>::new();
 
+        let frame_count_prime = (frame_count - 1) as ScalarType;
         for i in 0..frame_count {
-            let global_position = (i as ScalarType) / (frame_count as ScalarType);
+            let global_position = (i as ScalarType) / frame_count_prime;
 
             let (key_frame_src, key_frame_dest) = self.position_search(global_position);
             let local_position = (global_position - key_frame_src.position)
