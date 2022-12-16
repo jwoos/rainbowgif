@@ -2,7 +2,7 @@ use std::vec;
 
 use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
-use palette::{FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
+use palette::{FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue, Clamp};
 
 use crate::commandline;
 
@@ -104,7 +104,7 @@ impl Componentize<LabHue<ScalarType>, ScalarType, ScalarType, ScalarType>
     }
 
     fn from_components(h: LabHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
-        return Lcha::from_components((l, c, h, a));
+        return Lcha::from_components((l, c, h, a)).clamp();
     }
 }
 
@@ -116,7 +116,7 @@ impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
     }
 
     fn from_components(h: RgbHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
-        return Hsla::from_components((h, c, l, a));
+        return Hsla::from_components((h, c, l, a)).clamp();
     }
 }
 
@@ -128,7 +128,7 @@ impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
     }
 
     fn from_components(h: RgbHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
-        return Hsva::from_components((h, c, l, a));
+        return Hsva::from_components((h, c, l, a)).clamp();
     }
 }
 
@@ -163,12 +163,17 @@ where
     position: ScalarType,
 }
 
-pub struct GradientDescriptor<C: Mix<Scalar = ScalarType> + Sized> {
+pub struct GradientDescriptor<C> {
     pub colors: vec::Vec<C>,
     pub positions: vec::Vec<ScalarType>,
 }
 
-impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
+impl<C> GradientDescriptor<C>
+where
+    C: Mix<Scalar = ScalarType> + Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<ScalarType>>::Color>,
+{
     pub fn new(mut colors: vec::Vec<C>) -> GradientDescriptor<C> {
         colors.push(colors[0].clone());
         let rng = 0..colors.len();
@@ -223,11 +228,6 @@ impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
         let length = self.colors.len() - 1;
         let base = 1.0 / (length as ScalarType);
         let lower_index = (position / base).floor() as usize;
-
-        println!(
-            "{} {} {} {} {}",
-            length, base, lower_index, position, self.positions[lower_index]
-        );
 
         if lower_index == length {
             return (

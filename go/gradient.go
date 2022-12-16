@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/lucasb-eyer/go-colorful"
@@ -75,8 +74,6 @@ func (gradient Gradient) positionSearch(position float64) []GradientKeyFrame {
 	lowerIndex := int(math.Floor(position / base))
 
 	sliced := gradient.colors[lowerIndex:]
-
-	fmt.Println(length, base, lowerIndex, position, gradient.positions[lowerIndex]);
 
 	if len(sliced) >= 2 {
 		sliced = sliced[:2]
