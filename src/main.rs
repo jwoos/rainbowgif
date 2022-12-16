@@ -6,7 +6,7 @@ use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
 use palette;
-use palette::{Clamp, FromColor};
+use palette::{Clamp, FromColor, Mix};
 
 // TODO just use library
 mod buffer;

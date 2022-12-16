@@ -200,9 +200,8 @@ impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
     fn generate_discrete(&self, frame_count: usize) -> vec::Vec<C> {
         let mut gen = vec::Vec::<C>::new();
 
-        let frame_count_prime = (frame_count - 1) as ScalarType;
         for i in 0..frame_count {
-            let global_position = (i as ScalarType) / frame_count_prime;
+            let global_position = (i as ScalarType) / (frame_count as ScalarType);
 
             let (key_frame_src, key_frame_dest) = self.position_search(global_position);
             let local_position = (global_position - key_frame_src.position)
@@ -221,10 +220,16 @@ impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
         &'a self,
         position: ScalarType,
     ) -> (GradientKeyFrame<'a, C>, GradientKeyFrame<'a, C>) {
-        let base = 1.0 / ((self.colors.len() - 1) as ScalarType);
+        let length = self.colors.len() - 1;
+        let base = 1.0 / (length as ScalarType);
         let lower_index = (position / base).floor() as usize;
 
-        if lower_index == self.colors.len() - 1 {
+        println!(
+            "{} {} {} {} {}",
+            length, base, lower_index, position, self.positions[lower_index]
+        );
+
+        if lower_index == length {
             return (
                 GradientKeyFrame {
                     color: &self.colors[lower_index],

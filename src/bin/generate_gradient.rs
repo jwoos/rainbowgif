@@ -1,5 +1,4 @@
 use std::error;
-use std::vec;
 
 use clap::{arg, command};
 use image::{self, GenericImage, GenericImageView};
@@ -22,13 +21,14 @@ where
         image::ImageBuffer::new(width, matches.get_one::<u32>("height").unwrap().to_owned());
 
     for (i, color) in colors.into_iter().enumerate() {
-        let srgb_image = rainbowgif::color::ColorType::from_color(color);
+        let srgb_color = rainbowgif::color::ColorType::from_color(color);
         println!(
-            "{}, {}, {}, {}",
+            "({}, {}), ({}, {}) - {:?}",
             (i as u32) * increment,
             0,
-            increment,
-            image.height()
+            ((i as u32) + 1) * increment,
+            image.height(),
+            srgb_color,
         );
         let mut sub_image = image.sub_image((i as u32) * increment, 0, increment, image.height());
         let (width, height) = sub_image.dimensions();
@@ -38,9 +38,9 @@ where
                     x,
                     y,
                     image::Rgba::from([
-                        (srgb_image.red * 255.) as u8,
-                        (srgb_image.blue * 255.) as u8,
-                        (srgb_image.green * 255.) as u8,
+                        (srgb_color.red * 255.) as u8,
+                        (srgb_color.green * 255.) as u8,
+                        (srgb_color.blue * 255.) as u8,
                         255,
                     ]),
                 );

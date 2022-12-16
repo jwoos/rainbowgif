@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/lucasb-eyer/go-colorful"
@@ -53,9 +54,7 @@ func newGradient(colors []colorful.Color, wrap bool) Gradient {
 func (gradient Gradient) generate(frameCount uint) []colorful.Color {
 	generated := make([]colorful.Color, frameCount)
 
-	frameCount--
-
-	for i := uint(0); i <= frameCount; i++ {
+	for i := uint(0); i < frameCount; i++ {
 		position := float64(i) / float64(frameCount)
 		keyframes := gradient.positionSearch(position)
 
@@ -76,6 +75,8 @@ func (gradient Gradient) positionSearch(position float64) []GradientKeyFrame {
 	lowerIndex := int(math.Floor(position / base))
 
 	sliced := gradient.colors[lowerIndex:]
+
+	fmt.Println(length, base, lowerIndex, position, gradient.positions[lowerIndex]);
 
 	if len(sliced) >= 2 {
 		sliced = sliced[:2]
