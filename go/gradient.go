@@ -53,9 +53,7 @@ func newGradient(colors []colorful.Color, wrap bool) Gradient {
 func (gradient Gradient) generate(frameCount uint) []colorful.Color {
 	generated := make([]colorful.Color, frameCount)
 
-	frameCount--
-
-	for i := uint(0); i <= frameCount; i++ {
+	for i := uint(0); i < frameCount; i++ {
 		position := float64(i) / float64(frameCount)
 		keyframes := gradient.positionSearch(position)
 

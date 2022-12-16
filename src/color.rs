@@ -2,19 +2,22 @@ use std::vec;
 
 use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
-use palette::{FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
+use palette::{FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue, Clamp};
 
 use crate::commandline;
 
-pub type ScalarType = f64;
+pub type ScalarType = f32;
+// TODO put behind a feature
+// pub type ScalarType = f64;
 
+// TODO put behind a feature
 // pub type ColorType = palette::rgb::GammaSrgba<ScalarType>;
-pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
-// pub type ColorType = palette::rgb::Srgba<ScalarType>;
+// pub type ColorType = palette::rgb::LinSrgba<ScalarType>;
+pub type ColorType = palette::rgb::Srgba<ScalarType>;
 
 // pub type EncodingType = palette::encoding::Gamma<palette::encoding::Srgb>;
-pub type EncodingType = palette::encoding::linear::Linear<palette::encoding::Srgb>;
-// pub type EncodingType = palette::encoding::Srgb;
+// pub type EncodingType = palette::encoding::linear::Linear<palette::encoding::Srgb>;
+pub type EncodingType = palette::encoding::Srgb;
 
 pub type WhitePoint = palette::white_point::D65;
 
@@ -51,11 +54,26 @@ commandline::define_cli_enum!(MixingMode, {
 });
 
 commandline::define_cli_enum!(ColorSpace, {
-    HSL: ("hsl", "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."),
-    HSV: ("hsv", "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."),
-    LCH: ("lch", "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."),
-    RGB: ("rgb", "RGB"),
-    LAB: ("lab", "The CIE L*a*b* (CIELAB) color space")
+    HSL: (
+        "hsl",
+        "The HSL color space can be seen as a cylindrical version of RGB, where the hue is the angle around the color cylinder, the saturation is the distance from the center, and the lightness is the height from the bottom."
+    ),
+    HSV: (
+        "hsv",
+        "HSV is a cylindrical version of RGB and it’s very similar to HSL. The difference is that the value component in HSV determines the brightness of the color, and not the lightness."
+    ),
+    LCH: (
+        "lch",
+        "L*C*h° shares its range and perceptual uniformity with L*a*b*, but it’s a cylindrical color space, like HSL and HSV. This gives it the same ability to directly change the hue and colorfulness of a color, while preserving other visual aspects."
+    ),
+    RGB: (
+        "rgb",
+        "RGB"
+    ),
+    LAB: (
+        "lab",
+        "The CIE L*a*b* (CIELAB) color space"
+    )
 });
 
 pub fn from_hex<C>(color_string: &str) -> Result<C, std::num::ParseIntError>
@@ -66,7 +84,9 @@ where
     let g = u8::from_str_radix(&color_string[2..4], 16)? as ScalarType;
     let b = u8::from_str_radix(&color_string[4..6], 16)? as ScalarType;
 
-    return Ok(C::from_color(ColorType::new(r, g, b, 255.0)));
+    // expects values in (0, 1)
+    let temp_color = ColorType::new(r / 255.0, g / 255.0, b / 255.0, 1.0);
+    return Ok(C::from_color(temp_color));
 }
 
 pub trait Componentize<H, C, L, A> {
@@ -84,7 +104,7 @@ impl Componentize<LabHue<ScalarType>, ScalarType, ScalarType, ScalarType>
     }
 
     fn from_components(h: LabHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
-        return Lcha::from_components((l, c, h, a));
+        return Lcha::from_components((l, c, h, a)).clamp();
     }
 }
 
@@ -96,7 +116,7 @@ impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
     }
 
     fn from_components(h: RgbHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
-        return Hsla::from_components((h, c, l, a));
+        return Hsla::from_components((h, c, l, a)).clamp();
     }
 }
 
@@ -108,7 +128,7 @@ impl Componentize<RgbHue<ScalarType>, ScalarType, ScalarType, ScalarType>
     }
 
     fn from_components(h: RgbHue<ScalarType>, c: ScalarType, l: ScalarType, a: ScalarType) -> Self {
-        return Hsva::from_components((h, c, l, a));
+        return Hsva::from_components((h, c, l, a)).clamp();
     }
 }
 
@@ -143,12 +163,17 @@ where
     position: ScalarType,
 }
 
-pub struct GradientDescriptor<C: Mix<Scalar = ScalarType> + Sized> {
+pub struct GradientDescriptor<C> {
     pub colors: vec::Vec<C>,
     pub positions: vec::Vec<ScalarType>,
 }
 
-impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
+impl<C> GradientDescriptor<C>
+where
+    C: Mix<Scalar = ScalarType> + Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<ScalarType>>::Color>,
+{
     pub fn new(mut colors: vec::Vec<C>) -> GradientDescriptor<C> {
         colors.push(colors[0].clone());
         let rng = 0..colors.len();
@@ -200,10 +225,11 @@ impl<C: Mix<Scalar = ScalarType> + Sized + Clone> GradientDescriptor<C> {
         &'a self,
         position: ScalarType,
     ) -> (GradientKeyFrame<'a, C>, GradientKeyFrame<'a, C>) {
-        let base = 1.0 / ((self.colors.len() - 1) as ScalarType);
+        let length = self.colors.len() - 1;
+        let base = 1.0 / (length as ScalarType);
         let lower_index = (position / base).floor() as usize;
 
-        if lower_index == self.colors.len() - 1 {
+        if lower_index == length {
             return (
                 GradientKeyFrame {
                     color: &self.colors[lower_index],

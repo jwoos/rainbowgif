@@ -78,10 +78,10 @@ where
         let mut pixels = vec::Vec::new();
         for (_, _, pixel) in buf.enumerate_pixels() {
             pixels.push(C::from_color(color::ColorType::new(
-                pixel.0[0] as f64,
-                pixel.0[1] as f64,
-                pixel.0[2] as f64,
-                pixel.0[3] as f64,
+                pixel.0[0] as color::ScalarType,
+                pixel.0[1] as color::ScalarType,
+                pixel.0[2] as color::ScalarType,
+                pixel.0[3] as color::ScalarType,
             )));
         }
 
