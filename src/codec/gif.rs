@@ -5,15 +5,14 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::vec;
 
-use super::{Decodable, DecodeError, EncodeError, Frame};
+use super::{Decodable, DecodeError, EncodeError, Frame, Palette};
 use crate::color;
 
 use palette::FromColor;
 
 pub struct GifDecoder<R: io::Read, C> {
     phantom: PhantomData<C>,
-    decoder: Rc<RefCell<gif::Decoder<R>>>,
-    screen: gif_dispose::Screen,
+    decoder: gif::Decoder<R>,
 }
 
 impl<R, C> GifDecoder<R, C>
@@ -26,7 +25,7 @@ where
         decoder_options.set_color_output(gif::ColorOutput::Indexed);
 
         let decoder = match decoder_options.read_info(read) {
-            Ok(dec) => RefCell::new(dec),
+            Ok(dec) => dec,
             Err(e) => {
                 return Err(Box::new(DecodeError::Read(
                     Some(Box::new(e)),
@@ -35,21 +34,18 @@ where
             }
         };
 
-        let rc_decoder = Rc::new(decoder);
-
         return Ok(GifDecoder {
             phantom: PhantomData,
-            decoder: rc_decoder.clone(),
-            screen: gif_dispose::Screen::new_decoder(&rc_decoder.borrow()),
+            decoder,
         });
     }
 
     pub fn get_width(&self) -> u16 {
-        return self.decoder.borrow().width();
+        return self.decoder.width();
     }
 
     pub fn get_height(&self) -> u16 {
-        return self.decoder.borrow().height();
+        return self.decoder.height();
     }
 }
 
@@ -57,6 +53,8 @@ impl<C, R> IntoIterator for GifDecoder<R, C>
 where
     R: io::Read,
     C: color::Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     type Item = Frame<C>;
     type IntoIter = GifDecoderImpl<R, C>;
@@ -70,12 +68,18 @@ impl<R, C> super::Decodable for GifDecoder<R, C>
 where
     R: io::Read,
     C: color::Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     type OutputColor = C;
 
     fn decode(&mut self) -> Result<Option<Frame<C>>, Box<dyn error::Error>> {
-        let mut dec_ref = self.decoder.borrow_mut();
-        let frame = match dec_ref.read_next_frame() {
+        let global_pal = self
+            .decoder
+            .global_palette()
+            .map(|e| e.to_vec())
+            .unwrap_or(vec::Vec::new());
+        let frame = match self.decoder.read_next_frame() {
             Ok(f) => {
                 if let Some(f_result) = f {
                     f_result
@@ -86,31 +90,31 @@ where
             Err(e) => return Err(Box::new(e)),
         };
 
-        return match self.screen.blit_frame(&frame) {
-            Ok(_) => {
-                let mut pixels = vec::Vec::new();
-                for pixel in self.screen.pixels.pixels() {
-                    pixels.push(C::from_color(color::ColorType::new(
-                        (pixel.r as color::ScalarType) / 255.,
-                        (pixel.g as color::ScalarType) / 255.,
-                        (pixel.b as color::ScalarType) / 255.,
-                        (pixel.a as color::ScalarType) / 255.,
-                    )));
-                }
-
-                Ok(Some(Frame {
-                    pixels,
-                    delay: frame.delay,
-                    dispose: frame.dispose,
-                    interlaced: frame.interlaced,
-                }))
+        let pal = if let Some(pal) = &frame.palette {
+            Palette::<C>::from_gif_format(&pal[..])
+        } else {
+            if global_pal.len() == 0 {
+                return Err(Box::new(DecodeError::InvalidData(
+                    None,
+                    "Frame had no valid global palette to fall back to".to_owned(),
+                )));
             }
 
-            Err(e) => Err(Box::new(DecodeError::FrameRead(
-                Some(Box::new(e)),
-                "Could not blit frame".to_owned(),
-            ))),
+            Palette::from_gif_format(&global_pal[..])
         };
+
+        // We don't need to deal with disposal and such since it'll just be encoded back into a gif
+        return Ok(Some(Frame {
+            delay: frame.delay,
+            dispose: frame.dispose,
+            origin: (frame.left, frame.top),
+            dimensions: (frame.width, frame.height),
+            palette: (pal),
+            pixels_indexed: frame.buffer.to_vec(),
+            transparent_index: frame.transparent,
+            interlaced: frame.interlaced,
+            needs_input: frame.needs_user_input,
+        }));
     }
 
     fn decode_all(&mut self) -> Result<Option<vec::Vec<Frame<C>>>, Box<dyn error::Error>> {
@@ -137,7 +141,7 @@ where
     }
 
     fn get_dimensions(&self) -> (u16, u16) {
-        let dec_ref = self.decoder.borrow();
+        let dec_ref = &self.decoder;
         return (dec_ref.width(), dec_ref.height());
     }
 }
@@ -150,6 +154,8 @@ impl<C, R> Iterator for GifDecoderImpl<R, C>
 where
     R: io::Read,
     C: color::Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     type Item = Frame<C>;
 
@@ -200,19 +206,33 @@ where
                 <C as palette::WithAlpha<color::ScalarType>>::Color,
             >,
     {
-        let mut pixels = vec::Vec::new();
-        for pixel in frame.pixels {
-            let temp_pixel = color::ColorType::from_color(pixel);
-            pixels.push((temp_pixel.color.red * 255.) as u8);
-            pixels.push((temp_pixel.color.green * 255.) as u8);
-            pixels.push((temp_pixel.color.blue * 255.) as u8);
-            pixels.push((temp_pixel.alpha * 255.) as u8);
-        }
+        let pal = frame
+            .palette
+            .colors
+            .into_iter()
+            .flat_map(|c| {
+                let temp_color = color::ColorType::from_color(c);
+                return [
+                    (temp_color.color.red * 255.) as u8,
+                    (temp_color.color.green * 255.) as u8,
+                    (temp_color.color.blue * 255.) as u8,
+                ];
+            })
+            .collect::<Vec<_>>();
 
-        let mut new_frame = gif::Frame::from_rgba(self.width, self.height, &mut pixels);
+        let mut new_frame = gif::Frame::from_palette_pixels(
+            frame.dimensions.0,
+            frame.dimensions.1,
+            &&frame.pixels_indexed[..],
+            &pal[..],
+            frame.transparent_index,
+        );
+        new_frame.left = frame.origin.0;
+        new_frame.top = frame.origin.1;
         new_frame.delay = frame.delay;
         new_frame.dispose = frame.dispose;
         new_frame.interlaced = frame.interlaced;
+        new_frame.needs_user_input = frame.needs_input;
 
         if let Err(e) = self.encoder.borrow_mut().write_frame(&new_frame) {
             return Err(Box::new(EncodeError::FrameWrite(
