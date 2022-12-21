@@ -2,7 +2,7 @@ use std::vec;
 
 use clap::{builder::PossibleValue, ValueEnum};
 use palette::gradient;
-use palette::{FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue, Clamp};
+use palette::{Clamp, FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
 
 use crate::commandline;
 

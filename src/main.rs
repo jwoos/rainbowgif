@@ -52,24 +52,19 @@ where
     // let rgba_colors: vec::Vec<color::ColorType> = colors.iter().map(|e| color::ColorType::from_color(e.clone())).collect();
     // println!("{:#?}", rgba_colors[20]);
 
+    // TODO find a better way to do this, rather than cloning every loop
     for l in 0usize..loop_count {
         for (i, frame) in frames.iter().enumerate() {
             let new_color = &colors[i + (frames_len * l)];
 
-            let frame_pixels = frame
-                .pixels
-                .iter()
-                .map(|pixel| {
-                    return mix_fn(pixel, new_color);
-                })
-                .collect();
+            let mut cloned = frame.clone();
+            cloned
+                .palette
+                .colors
+                .iter_mut()
+                .for_each(|c| *c = mix_fn(c, new_color));
 
-            encoder.write(codec::Frame {
-                pixels: frame_pixels,
-                delay: frame.delay,
-                dispose: frame.dispose,
-                interlaced: frame.interlaced,
-            })?;
+            encoder.write(cloned)?;
         }
     }
 

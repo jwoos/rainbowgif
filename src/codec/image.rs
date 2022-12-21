@@ -87,12 +87,18 @@ where
 
         self.decoded = true;
 
-        return Ok(Some(Frame {
-            pixels,
-            delay: 0,
-            dispose: gif::DisposalMethod::Any,
-            interlaced: false,
-        }));
+        // FIXME re-enable static image parsing to match the new Frame struct
+        // TODO support palette based transformation
+        return Err("NOT IMPLEMENTED".into());
+
+        // return Ok(Some(Frame {
+        //     pixels,
+        //     delay: 0,
+        //     dispose: gif::DisposalMethod::Any,
+        //     interlaced: false,
+        //     palette: None,
+        //     pixel_indexed: None,
+        // }));
     }
 
     fn decode_all(
