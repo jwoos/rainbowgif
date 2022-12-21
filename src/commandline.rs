@@ -104,9 +104,9 @@ where
     palette::rgb::Rgb:
         palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
-    let gradient_desc = color::GradientDescriptor::new(colors);
+    let gradient_desc = color::gradient::GradientDescriptor::new(colors);
     let generator_type = matches
-        .get_one::<color::GradientGeneratorType>("generator")
+        .get_one::<color::gradient::GradientGeneratorType>("generator")
         .unwrap()
         .to_owned();
     return gradient_desc.generate(frames_len * loop_count, generator_type);

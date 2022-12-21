@@ -85,7 +85,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         .arg(
             arg!(generator: -g --generator [GENERATOR] "The type generator to use")
                 .value_parser(clap::value_parser!(
-                    rainbowgif::color::GradientGeneratorType
+                    rainbowgif::color::gradient::GradientGeneratorType
                 ))
                 .default_value("discrete"),
         )
