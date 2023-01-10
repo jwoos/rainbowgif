@@ -146,7 +146,7 @@ fn main() -> Result<(), Box<dyn error::Error>> {
         )
         .arg(
             arg!(generator: -g --generator [GENERATOR] "The type generator to use")
-                .value_parser(value_parser!(color::GradientGeneratorType))
+                .value_parser(value_parser!(color::gradient::GradientGeneratorType))
                 .default_value("discrete")
         )
         .arg(
