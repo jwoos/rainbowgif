@@ -1,13 +1,17 @@
+use std::collections;
 use std::error;
 use std::io;
 use std::marker;
 use std::vec;
 
-use super::{Decodable, DecodeError, Frame};
-use crate::color;
-
+use ::gif as gif_lib;
 use image::io::Reader;
 use image::{DynamicImage, ImageFormat};
+use palette;
+
+use super::{Decodable, DecodeError, Frame};
+use crate::codec;
+use crate::color;
 
 pub struct ImageDecoder<C> {
     phantom: marker::PhantomData<C>,
@@ -64,6 +68,8 @@ where
 impl<C> Decodable for ImageDecoder<C>
 where
     C: color::Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     type OutputColor = C;
 
@@ -72,33 +78,61 @@ where
             return Ok(None);
         }
 
-        let img = self.image.clone();
-        let buf = img.into_rgba32f();
+        let mut buf = self.image.to_rgba8();
+        let mut transparent_indices = collections::hash_set::HashSet::new();
 
-        let mut pixels = vec::Vec::new();
-        for (_, _, pixel) in buf.enumerate_pixels() {
-            pixels.push(C::from_color(color::ColorType::new(
-                pixel.0[0] as color::ScalarType,
-                pixel.0[1] as color::ScalarType,
-                pixel.0[2] as color::ScalarType,
-                pixel.0[3] as color::ScalarType,
-            )));
+        // in a gif if a value isn't fully opaque, it's considered transparent
+        for (i, mut pixel) in buf.pixels_mut().enumerate() {
+            if pixel.0[3] != 255 {
+                transparent_indices.insert(i);
+                pixel.0[0] = 0;
+                pixel.0[1] = 0;
+                pixel.0[2] = 0;
+                pixel.0[3] = 0;
+            }
         }
+
+        let (pixels, indices) = color::quantize::quantize(
+            color::quantize::Quantizer::IMAGEQUANT,
+            buf.into_vec()[..]
+                .chunks(4)
+                .map(|chunk| {
+                    let [r, g, b, a]: [u8; 4] = chunk.try_into().unwrap();
+                    return (r, g, b, a);
+                })
+                .collect(),
+            (self.image.width() as usize, self.image.height() as usize),
+        )?;
+
+        let transparent_index = pixels.iter().position(|&x| x.3 == 0).map(|i| i as u8);
+
+        let quantized_pixels = pixels
+            .into_iter()
+            .map(|pixel| {
+                return C::from_color(color::ColorType::new(
+                    (pixel.0 as color::ScalarType) / 255.,
+                    (pixel.1 as color::ScalarType) / 255.,
+                    (pixel.2 as color::ScalarType) / 255.,
+                    (pixel.3 as color::ScalarType) / 255.,
+                ));
+            })
+            .collect::<vec::Vec<_>>();
+
+        let pal = codec::Palette::new(quantized_pixels);
 
         self.decoded = true;
 
-        // FIXME re-enable static image parsing to match the new Frame struct
-        // TODO support palette based transformation
-        return Err("NOT IMPLEMENTED".into());
-
-        // return Ok(Some(Frame {
-        //     pixels,
-        //     delay: 0,
-        //     dispose: gif::DisposalMethod::Any,
-        //     interlaced: false,
-        //     palette: None,
-        //     pixel_indexed: None,
-        // }));
+        return Ok(Some(Frame {
+            delay: 0, // TODO #35
+            dispose: gif_lib::DisposalMethod::Keep,
+            origin: (0, 0),
+            dimensions: self.get_dimensions(),
+            palette: pal,
+            pixels_indexed: indices,
+            transparent_index,
+            interlaced: false,
+            needs_input: false,
+        }));
     }
 
     fn decode_all(
@@ -123,6 +157,8 @@ where
 impl<C> IntoIterator for ImageDecoder<C>
 where
     C: color::Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     type Item = Frame<C>;
     type IntoIter = ImageDecoderIter<C>;
@@ -139,6 +175,8 @@ pub struct ImageDecoderIter<C> {
 impl<C> Iterator for ImageDecoderIter<C>
 where
     C: color::Color,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     type Item = Frame<C>;
 

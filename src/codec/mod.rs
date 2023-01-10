@@ -33,10 +33,15 @@ pub struct Palette<C> {
 impl<C> Palette<C>
 where
     C: color::Color,
-    palette::rgb::Rgb: palette::convert::FromColorUnclamped<<C as palette::WithAlpha<f32>>::Color>,
+    palette::rgb::Rgb:
+        palette::convert::FromColorUnclamped<<C as palette::WithAlpha<color::ScalarType>>::Color>,
 {
     pub fn new(colors: vec::Vec<C>) -> Self {
-        assert!(colors.len() <= 255);
+        assert!(
+            colors.len() <= 256,
+            "Expected <= 255 but got {}",
+            colors.len()
+        );
 
         return Palette { colors };
     }
