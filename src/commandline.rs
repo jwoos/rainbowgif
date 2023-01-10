@@ -112,6 +112,7 @@ where
     return gradient_desc.generate(frames_len * loop_count, generator_type);
 }
 
+#[allow(dead_code, unused_variables)]
 pub fn get_gradient_2<C>(
     matches: &clap::ArgMatches,
     colors: vec::Vec<C>,

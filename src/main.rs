@@ -2,11 +2,9 @@ use std::cmp;
 use std::error;
 use std::fmt;
 use std::fs;
-use std::vec;
 
 use clap::{arg, command, value_parser, ArgMatches};
 use palette;
-use palette::{Clamp, FromColor, Mix};
 
 // TODO just use library
 mod buffer;

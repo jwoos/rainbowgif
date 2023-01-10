@@ -1,5 +1,4 @@
 use std::error;
-use std::fmt;
 use std::vec;
 
 use crate::{color, error_utils};
@@ -63,6 +62,7 @@ where
         };
     }
 
+    #[allow(dead_code)]
     pub fn into_gif_format(self) -> vec::Vec<u8> {
         return self
             .colors

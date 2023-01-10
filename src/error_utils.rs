@@ -1,6 +1,7 @@
 macro_rules! define_error {
     ($x:ident, { $($y:ident : $z:literal),* $(,)? }) => {
         #[derive(Debug)]
+        #[allow(dead_code)]
         pub enum $x {
             $(
                 $y(Option<Box<dyn std::error::Error>>, String),
