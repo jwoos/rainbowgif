@@ -6,6 +6,7 @@ use palette::{Clamp, FromColor, Hsla, Hsva, LabHue, Lcha, Mix, RgbHue};
 use crate::commandline;
 
 pub mod gradient;
+pub mod quantize;
 
 pub type ScalarType = f32;
 // TODO put behind a feature
