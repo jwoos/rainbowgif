@@ -2,13 +2,12 @@ use std::cell::RefCell;
 use std::error;
 use std::io;
 use std::marker::PhantomData;
-use std::rc::Rc;
 use std::vec;
+
+use palette::FromColor;
 
 use super::{Decodable, DecodeError, EncodeError, Frame, Palette};
 use crate::color;
-
-use palette::FromColor;
 
 pub struct GifDecoder<R: io::Read, C> {
     phantom: PhantomData<C>,
@@ -40,10 +39,12 @@ where
         });
     }
 
+    #[allow(dead_code)]
     pub fn get_width(&self) -> u16 {
         return self.decoder.width();
     }
 
+    #[allow(dead_code)]
     pub fn get_height(&self) -> u16 {
         return self.decoder.height();
     }
@@ -168,6 +169,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 pub struct GifEncoder<W: io::Write, C> {
     phantom: PhantomData<C>,
     encoder: RefCell<gif::Encoder<W>>,
@@ -263,8 +265,10 @@ where
         return self.write(frame);
     }
 
-    // TODO
     fn encode_all(&self, frames: vec::Vec<Frame<C>>) -> Result<(), Box<dyn error::Error>> {
+        for frame in frames {
+            self.write(frame)?;
+        }
         return Ok(());
     }
 }

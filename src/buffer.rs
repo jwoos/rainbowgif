@@ -8,7 +8,7 @@ use std::vec;
 pub type Buffer = io::Cursor<vec::Vec<u8>>;
 
 pub struct Data {
-    pub buffer: io::Cursor<vec::Vec<u8>>,
+    pub buffer: Buffer,
 }
 
 impl Data {

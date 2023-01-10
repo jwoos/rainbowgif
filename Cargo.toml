@@ -10,7 +10,6 @@ default-run = "rainbowgif"
 clap = { version = "4.0.26", features = ["cargo"] }
 palette = "0.6.1"
 gif = "0.12.0"
-gif-dispose = "4.0.0"
 image = "0.24.5"
 imagequant = "4.0.4"
 
