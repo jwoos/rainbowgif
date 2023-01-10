@@ -4,10 +4,10 @@ use std::io;
 use std::marker::PhantomData;
 use std::vec;
 
+use palette::FromColor;
+
 use super::{Decodable, DecodeError, EncodeError, Frame, Palette};
 use crate::color;
-
-use palette::FromColor;
 
 pub struct GifDecoder<R: io::Read, C> {
     phantom: PhantomData<C>,

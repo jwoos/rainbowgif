@@ -6,12 +6,7 @@ use std::fs;
 use clap::{arg, command, value_parser, ArgMatches};
 use palette;
 
-// TODO just use library
-mod buffer;
-mod codec;
-mod color;
-mod commandline;
-mod error_utils;
+use rainbowgif::{buffer, codec, color, commandline};
 
 fn mix_impl<C>(matches: ArgMatches, mix_fn: fn(&C, &C) -> C) -> Result<(), Box<dyn error::Error>>
 where

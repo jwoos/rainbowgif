@@ -1,10 +1,10 @@
 use std::error;
 use std::vec;
 
-use crate::{color, error_utils};
-
 use ::gif as gif_lib;
 use palette::FromColor;
+
+use crate::{color, error_utils};
 
 pub mod gif;
 pub mod image;
