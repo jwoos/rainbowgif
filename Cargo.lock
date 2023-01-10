@@ -262,17 +262,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gif-dispose"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a40dfdf5be59e0cbbf77cb7c6a91a18ee6d398b70fc54ad900e2bcba1860cb50"
-dependencies = [
- "gif 0.12.0",
- "imgref",
- "rgb",
-]
-
-[[package]]
 name = "half"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -323,12 +312,6 @@ dependencies = [
  "rgb",
  "thread_local",
 ]
-
-[[package]]
-name = "imgref"
-version = "1.9.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2cf49df1085dcfb171460e4592597b84abe50d900fb83efb6e41b20fefd6c2c"
 
 [[package]]
 name = "jpeg-decoder"
@@ -588,7 +571,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "gif 0.12.0",
- "gif-dispose",
  "image",
  "imagequant",
  "palette",
