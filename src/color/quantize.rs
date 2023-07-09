@@ -3,7 +3,7 @@ use std::vec;
 
 use imagequant;
 
-pub enum Quantizer {
+pub enum QuantizerType {
     IMAGEQUANT,
 }
 
@@ -39,11 +39,11 @@ pub fn quantize_image_quant(
 }
 
 pub fn quantize(
-    quantizer: Quantizer,
+    quantizer: QuantizerType,
     img: vec::Vec<(u8, u8, u8, u8)>,
     dimensions: (usize, usize),
 ) -> Result<(vec::Vec<(u8, u8, u8, u8)>, vec::Vec<u8>), Box<dyn error::Error>> {
     return match quantizer {
-        Quantizer::IMAGEQUANT => quantize_image_quant(img, dimensions),
+        QuantizerType::IMAGEQUANT => quantize_image_quant(img, dimensions),
     };
 }

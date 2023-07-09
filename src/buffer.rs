@@ -17,6 +17,7 @@ impl Data {
             buffer: io::Cursor::new(vec::Vec::new()),
         };
     }
+
     pub fn from_path<P: AsRef<path::Path>>(p: P) -> Result<Self, Box<dyn error::Error>> {
         let file = fs::File::open(p)?;
         return Self::from_file(file);

@@ -93,7 +93,7 @@ where
         }
 
         let (pixels, indices) = color::quantize::quantize(
-            color::quantize::Quantizer::IMAGEQUANT,
+            color::quantize::QuantizerType::IMAGEQUANT,
             buf.into_vec()[..]
                 .chunks(4)
                 .map(|chunk| {
